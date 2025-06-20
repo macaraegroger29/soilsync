@@ -1,16 +1,14 @@
-# soilsync
+# SoilSync
 
-A new Flutter project.
+A BSIT 3-1 DA project.
 
-## Getting Started
+## Team
 
-This project is a starting point for a Flutter application.
+Roger Macaraeg
 
-A few resources to get you started if this is your first Flutter project:
+Carl Ivan Alatan
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+Dhea Charissed Barte
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Charles Emmanuel Benitez
+
