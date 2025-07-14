@@ -27,7 +27,7 @@ class CustomErrorWidget extends StatelessWidget {
                 color: Colors.red,
                 size: 60,
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               Text(
                 'Something went wrong!',
                 style: TextStyle(
@@ -35,15 +35,15 @@ class CustomErrorWidget extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Text(
                 'The app encountered an error and needs to be restarted.',
                 textAlign: TextAlign.center,
               ),
               if (kDebugMode) ...[
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 Container(
-                  padding: EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(8),
                   color: Colors.grey[200],
                   child: Text(
                     errorDetails.exceptionAsString(),

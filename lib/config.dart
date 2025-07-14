@@ -6,7 +6,7 @@ class AppConfig {
   //     'http://10.0.2.2:8000'; // For Android emulator
 
   // // PC to physical device
-  static const String baseUrl = 'http://192.168.100.93:8000';
+  static const String baseUrl = 'http://192.168.254.174:8000';
 
   // online db to physical device
   // static const String baseUrl = 'https://soilsync.pythonanywhere.com';

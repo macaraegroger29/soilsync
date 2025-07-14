@@ -4,6 +4,7 @@ import 'config.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'services/location_data_service.dart';
+import 'widgets/location_settings_widget.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -17,6 +18,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _isNotificationsEnabled = true;
   String _selectedLanguage = 'English';
   String _selectedUnit = 'Metric';
+  String _selectedRainfallPeriod = '24 hours';
   Map<String, dynamic> _locationData = {};
   String _selectedRegionCode = '01';
   String _selectedProvince = 'PANGASINAN';
@@ -38,6 +40,8 @@ class _SettingsPageState extends State<SettingsPage> {
       _isNotificationsEnabled = prefs.getBool('notifications') ?? true;
       _selectedLanguage = prefs.getString('language') ?? 'English';
       _selectedUnit = prefs.getString('unit') ?? 'Metric';
+      _selectedRainfallPeriod =
+          prefs.getString('rainfall_accumulation_period') ?? '24 hours';
     });
   }
 
@@ -68,6 +72,8 @@ class _SettingsPageState extends State<SettingsPage> {
     await prefs.setBool('notifications', _isNotificationsEnabled);
     await prefs.setString('language', _selectedLanguage);
     await prefs.setString('unit', _selectedUnit);
+    await prefs.setString(
+        'rainfall_accumulation_period', _selectedRainfallPeriod);
   }
 
   Future<void> _saveLocation() async {
@@ -231,116 +237,65 @@ class _SettingsPageState extends State<SettingsPage> {
                         underline: Container(),
                       ),
                     ),
+                    Divider(height: 1),
+                    _buildSettingTile(
+                      'Rainfall Accumulation',
+                      'Select accumulation period',
+                      Icons.water_drop,
+                      DropdownButton<String>(
+                        value: _selectedRainfallPeriod,
+                        items: ['24 hours', '7 days'].map((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
+                        onChanged: (String? newValue) {
+                          if (newValue != null) {
+                            setState(() {
+                              _selectedRainfallPeriod = newValue;
+                              _saveSettings();
+                            });
+                          }
+                        },
+                        underline: Container(),
+                      ),
+                    ),
                   ],
                 ),
               ),
               SizedBox(height: 16),
-              !_locationLoaded
-                  ? Center(
-                      child: Padding(
-                      padding: EdgeInsets.all(32),
-                      child: CircularProgressIndicator(),
-                    ))
-                  : Card(
-                      elevation: 8,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Location (Philippines)',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                                color: Colors.green[700],
-                              ),
-                            ),
-                            SizedBox(height: 16),
-                            DropdownButtonFormField<String>(
-                              value: _selectedRegionCode,
-                              decoration: InputDecoration(
-                                labelText: 'Region',
-                                border: OutlineInputBorder(),
-                              ),
-                              items: _getRegionCodes()
-                                  .map((code) => DropdownMenuItem(
-                                        value: code,
-                                        child: Text(_getRegionName(code)),
-                                      ))
-                                  .toList(),
-                              onChanged: (value) {
-                                if (value != null &&
-                                    value != _selectedRegionCode) {
-                                  setState(() {
-                                    _selectedRegionCode = value;
-                                    final provinces = _getProvinces();
-                                    _selectedProvince = provinces.isNotEmpty
-                                        ? provinces[0]
-                                        : '';
-                                    final cities = _getCities();
-                                    _selectedCity =
-                                        cities.isNotEmpty ? cities[0] : '';
-                                    _saveLocation();
-                                  });
-                                }
-                              },
-                            ),
-                            SizedBox(height: 12),
-                            DropdownButtonFormField<String>(
-                              value: _selectedProvince,
-                              decoration: InputDecoration(
-                                labelText: 'Province',
-                                border: OutlineInputBorder(),
-                              ),
-                              items: _getProvinces()
-                                  .map((province) => DropdownMenuItem(
-                                        value: province,
-                                        child: Text(province),
-                                      ))
-                                  .toList(),
-                              onChanged: (value) {
-                                if (value != null &&
-                                    value != _selectedProvince) {
-                                  setState(() {
-                                    _selectedProvince = value;
-                                    final cities = _getCities();
-                                    _selectedCity =
-                                        cities.isNotEmpty ? cities[0] : '';
-                                    _saveLocation();
-                                  });
-                                }
-                              },
-                            ),
-                            SizedBox(height: 12),
-                            DropdownButtonFormField<String>(
-                              value: _selectedCity,
-                              decoration: InputDecoration(
-                                labelText: 'City/Municipality',
-                                border: OutlineInputBorder(),
-                              ),
-                              items: _getCities()
-                                  .map((city) => DropdownMenuItem(
-                                        value: city,
-                                        child: Text(city),
-                                      ))
-                                  .toList(),
-                              onChanged: (value) {
-                                if (value != null && value != _selectedCity) {
-                                  setState(() {
-                                    _selectedCity = value;
-                                    _saveLocation();
-                                  });
-                                }
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
+              // Move Location Settings card here
+              Card(
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                child: ListTile(
+                  leading: Icon(Icons.location_on, color: Colors.green[700]),
+                  title: Text(
+                    'Location Settings',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                      color: Colors.green[700],
                     ),
+                  ),
+                  subtitle: Text(
+                    'Set precise location for rainfall data',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 12,
+                    ),
+                  ),
+                  trailing: Icon(Icons.arrow_forward_ios,
+                      size: 16, color: Colors.grey[600]),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LocationSettingsWidget(),
+                      ),
+                    );
+                  },
+                ),
+              ),
               SizedBox(height: 16),
               Card(
                 elevation: 8,
@@ -372,6 +327,61 @@ class _SettingsPageState extends State<SettingsPage> {
                               textAlign: TextAlign.center,
                             ),
                           ],
+                        );
+                      },
+                    ),
+                    Divider(height: 1),
+                    _buildSettingTile(
+                      'Help',
+                      'How to use the soil sensor and app',
+                      Icons.help,
+                      Icon(Icons.arrow_forward_ios,
+                          size: 16, color: Colors.grey),
+                      onTap: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: Row(
+                              children: [
+                                Icon(Icons.help, color: Colors.green[700]),
+                                SizedBox(width: 8),
+                                Text('Help for Farmers'),
+                              ],
+                            ),
+                            content: SingleChildScrollView(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '• The soil sensor can accurately analyze soil properties for an area of up to 1 hectare (10,000 square meters) per reading.\n',
+                                  ),
+                                  Text(
+                                    '• For larger farms, take multiple readings at different locations to get a more comprehensive soil profile.\n',
+                                  ),
+                                  Text(
+                                    '• Place the sensor in the center of the area you want to analyze for best results.\n',
+                                  ),
+                                  Text(
+                                    '• The app will use the sensor data and weather information to recommend the best crops for your land.\n',
+                                  ),
+                                  SizedBox(height: 12),
+                                  Text(
+                                    'If you need more help, contact your local agricultural extension office or refer to the SoilSync user manual.',
+                                    style: TextStyle(
+                                        fontStyle: FontStyle.italic,
+                                        color: Colors.grey[700]),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: Text('Close',
+                                    style: TextStyle(color: Colors.green[700])),
+                              ),
+                            ],
+                          ),
                         );
                       },
                     ),
@@ -432,6 +442,26 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
       trailing: trailing,
       onTap: onTap,
+    );
+  }
+
+  Widget _buildLocationSection() {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: ListTile(
+        leading: Icon(Icons.location_on, color: Colors.green[700]),
+        title: Text('Location Settings'),
+        subtitle: Text('Set precise location for rainfall data'),
+        trailing: Icon(Icons.arrow_forward_ios),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const LocationSettingsWidget(),
+            ),
+          );
+        },
+      ),
     );
   }
 }

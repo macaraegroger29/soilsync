@@ -6,6 +6,8 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.views import APIView
 from django.contrib.auth.password_validation import validate_password
 import logging
+import requests
+import json
 from .serializers import CustomUserSerializer, SoilDataSerializer
 from .models import SoilData, Dataset
 import joblib
@@ -143,13 +145,26 @@ class PredictSoilView(APIView):
                 prediction = model.predict(input_data)[0]
                 logger.info(f"Made prediction: {prediction} for input: {input_data}")
 
+                # Get top N probable crops using predict_proba
+                if hasattr(model, 'predict_proba'):
+                    proba = model.predict_proba(input_data)[0]
+                    class_labels = model.classes_
+                    N = 5
+                    top_indices = proba.argsort()[-N:][::-1]
+                    top_crops = [
+                        {"label": str(class_labels[i]), "confidence": float(proba[i])}
+                        for i in top_indices
+                    ]
+                else:
+                    top_crops = [{"label": str(prediction), "confidence": 1.0}]
+
                 # Save the data with prediction
                 soil_data = serializer.save(
                     user=request.user,
                     prediction=prediction
                 )
 
-                # Get similar cases from the dataset
+                # Get similar cases from the dataset (legacy, can be removed later)
                 similar_cases = Dataset.objects.filter(
                     label=prediction
                 ).order_by('?')[:5]  # Get 5 random similar cases
@@ -169,6 +184,7 @@ class PredictSoilView(APIView):
                     "message": "Prediction successful",
                     "prediction": prediction,
                     "data": SoilDataSerializer(soil_data).data,
+                    "top_crops": top_crops,
                     "similar_cases": similar_cases_data
                 }, status=status.HTTP_201_CREATED)
             else:
@@ -279,6 +295,63 @@ class ListDatasetView(APIView):
             })
         except Exception as e:
             logger.error(f"Error listing dataset: {str(e)}")
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class WeatherView(APIView):
+    permission_classes = []  # Allow unauthenticated access
+    
+    def get(self, request):
+        try:
+            # Get location parameters
+            lat = request.GET.get('lat')
+            lon = request.GET.get('lon')
+            
+            if not lat or not lon:
+                return Response(
+                    {"error": "Latitude and longitude parameters are required"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Use Open-Meteo API (free, no API key required)
+            url = f"https://api.open-meteo.com/v1/forecast"
+            params = {
+                'latitude': float(lat),
+                'longitude': float(lon),
+                'current': 'precipitation,rain,weather_code',
+                'timezone': 'auto'
+            }
+            
+            response = requests.get(url, params=params, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                # Parse the weather data
+                current = data.get('current', {})
+                
+                # Extract current rainfall data
+                current_weather = {
+                    'rainfall': current.get('rain', current.get('precipitation', 0.0)),
+                    'weather_code': current.get('weather_code', 0),
+                    'latitude': float(lat),
+                    'longitude': float(lon),
+                    'timestamp': data.get('current_units', {}).get('time', ''),
+                }
+                
+                return Response({
+                    'current_weather': current_weather,
+                })
+            else:
+                return Response(
+                    {"error": f"Weather API returned status {response.status_code}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+                
+        except Exception as e:
+            logger.error(f"Error in weather API: {str(e)}")
             return Response(
                 {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR

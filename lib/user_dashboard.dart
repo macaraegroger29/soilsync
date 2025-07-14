@@ -8,6 +8,7 @@ import 'login_screen.dart';
 import 'config.dart';
 import 'profile_page.dart';
 import 'settings_page.dart';
+import 'services/weather_service.dart';
 
 class UserDashboard extends StatefulWidget {
   const UserDashboard({super.key});
@@ -33,6 +34,8 @@ class _UserDashboardState extends State<UserDashboard> {
   Timer? _sensorTimer;
   bool _isPredicting = false;
   int _selectedIndex = 0;
+  final WeatherService _weatherService = WeatherService();
+  List<Map<String, dynamic>>? _latestTopCrops; // Store latest top crops
 
   @override
   void initState() {
@@ -112,6 +115,7 @@ class _UserDashboardState extends State<UserDashboard> {
       _isPredicting = true;
       _predictionResult = null;
       _similarCases = null;
+      _latestTopCrops = null; // Reset before new prediction
     });
 
     try {
@@ -152,6 +156,12 @@ class _UserDashboardState extends State<UserDashboard> {
           _predictionHistory.insert(0, data['data']);
           _similarCases =
               List<Map<String, dynamic>>.from(data['similar_cases']);
+          if (data['top_crops'] != null && data['top_crops'] is List) {
+            _latestTopCrops =
+                List<Map<String, dynamic>>.from(data['top_crops']);
+          } else {
+            _latestTopCrops = null;
+          }
         });
 
         if (!_isAutomaticMode) {
@@ -206,11 +216,41 @@ class _UserDashboardState extends State<UserDashboard> {
     });
 
     try {
-      // TODO: Implement actual sensor data fetching
-      // This is a mock implementation
-      await Future.delayed(
-          Duration(seconds: 2)); // Simulate sensor reading delay
+      // Get real rainfall data from weather API
+      final weatherData =
+          await _weatherService.getCurrentWeather(forceRefresh: true);
 
+      print('Dashboard received rainfall data: $weatherData');
+
+      // Generate mock data for soil parameters (nitrogen, phosphorus, potassium, pH)
+      // In a real implementation, these would come from actual soil sensors
+      setState(() {
+        _nitrogenController.text =
+            (20 + Random().nextDouble() * 10).toStringAsFixed(2);
+        _phosphorusController.text =
+            (30 + Random().nextDouble() * 20).toStringAsFixed(2);
+        _potassiumController.text =
+            (40 + Random().nextDouble() * 30).toStringAsFixed(2);
+
+        // Use mock data for temperature and humidity (will be replaced by soil sensor)
+        _temperatureController.text =
+            (25 + Random().nextDouble() * 5).toStringAsFixed(2);
+        _humidityController.text =
+            (60 + Random().nextDouble() * 20).toStringAsFixed(2);
+        _phController.text =
+            (6.5 + Random().nextDouble() * 1.2).toStringAsFixed(2);
+
+        // Use rainfall accumulation from weather API
+        _rainfallController.text =
+            (weatherData['rainfall_accumulation'] as double).toStringAsFixed(2);
+      });
+
+      // Automatically predict when in sensor mode
+      if (_isAutomaticMode) {
+        await _predictSoil();
+      }
+    } catch (e) {
+      // Fallback to mock data if weather service fails
       setState(() {
         _nitrogenController.text =
             (20 + Random().nextDouble() * 10).toStringAsFixed(2);
@@ -228,15 +268,10 @@ class _UserDashboardState extends State<UserDashboard> {
             (100 + Random().nextDouble() * 50).toStringAsFixed(2);
       });
 
-      // Automatically predict when in sensor mode
-      if (_isAutomaticMode) {
-        await _predictSoil();
-      }
-    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error reading sensor data: $e'),
-          backgroundColor: Colors.red,
+          content: Text('Weather data unavailable, using fallback values: $e'),
+          backgroundColor: Colors.orange,
         ),
       );
     } finally {
@@ -649,7 +684,7 @@ class _UserDashboardState extends State<UserDashboard> {
               ),
             ),
             subtitle: Text(
-              'Date: ${prediction['date'] ?? 'Unknown'}',
+              'Date: ' + _formatPredictionDate(prediction),
               style: TextStyle(color: Colors.grey[600]),
             ),
             children: [
@@ -678,6 +713,20 @@ class _UserDashboardState extends State<UserDashboard> {
         );
       },
     );
+  }
+
+  String _formatPredictionDate(Map<String, dynamic> prediction) {
+    final dateStr = prediction['created_at'] ??
+        prediction['created'] ??
+        prediction['timestamp'] ??
+        prediction['date'];
+    if (dateStr == null) return 'Unknown';
+    try {
+      final date = DateTime.parse(dateStr).toLocal();
+      return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    } catch (e) {
+      return dateStr.toString();
+    }
   }
 
   Widget _buildHistoryDetailRow(String label, String value) {
@@ -730,137 +779,16 @@ class _UserDashboardState extends State<UserDashboard> {
       );
     }
 
+    // Use _latestTopCrops for analytics
+    final List<Map<String, dynamic>>? topCropsFromState = _latestTopCrops;
+
     return SingleChildScrollView(
       padding: EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Card with Main Prediction
-          Card(
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 20,
-                        backgroundColor: Colors.green[100],
-                        child:
-                            Icon(Icons.eco, color: Colors.green[700], size: 24),
-                      ),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _predictionResult!,
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green[900],
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            Text(
-                              'Recommended Crop',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 16),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.green[50],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _buildStatItem(
-                            'Nitrogen', '${_nitrogenController.text}', 'mg/kg'),
-                        _buildStatItem('Phosphorus',
-                            '${_phosphorusController.text}', 'mg/kg'),
-                        _buildStatItem('Potassium',
-                            '${_potassiumController.text}', 'mg/kg'),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          SizedBox(height: 12),
-
-          // Environmental Conditions Card
-          Card(
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Environmental Conditions',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green[700],
-                    ),
-                  ),
-                  SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildEnvironmentItem(
-                          'Rainfall',
-                          '${_rainfallController.text} mm',
-                          Icons.water,
-                          Colors.lightBlue,
-                        ),
-                      ),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: _buildEnvironmentItem(
-                          'Humidity',
-                          '${_humidityController.text}%',
-                          Icons.water_drop,
-                          Colors.blue,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 8),
-                  _buildEnvironmentItem(
-                    'Temperature',
-                    '${_temperatureController.text}°C',
-                    Icons.thermostat,
-                    Colors.orange,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          SizedBox(height: 12),
-
           // Top 5 Crops Card
-          if (_similarCases != null && _similarCases!.isNotEmpty)
+          if (topCropsFromState != null && topCropsFromState.isNotEmpty)
             Card(
               elevation: 4,
               shape: RoundedRectangleBorder(
@@ -901,10 +829,11 @@ class _UserDashboardState extends State<UserDashboard> {
                       ],
                     ),
                     SizedBox(height: 12),
-                    ..._similarCases!.take(5).map((crop) {
-                      final similarity = crop['similarity'];
-                      final confidenceScore = similarity != null
-                          ? (similarity * 100).toStringAsFixed(1)
+                    ...topCropsFromState.asMap().entries.take(5).map((entry) {
+                      final crop = entry.value;
+                      final index = entry.key;
+                      final confidenceScore = crop['confidence'] != null
+                          ? (crop['confidence'] * 100).toStringAsFixed(1)
                           : 'N/A';
 
                       return Container(
@@ -926,7 +855,7 @@ class _UserDashboardState extends State<UserDashboard> {
                               ),
                               child: Center(
                                 child: Text(
-                                  '${_similarCases!.indexOf(crop) + 1}',
+                                  '${index + 1}',
                                   style: TextStyle(
                                     color: Colors.green[700],
                                     fontWeight: FontWeight.bold,
@@ -941,7 +870,7 @@ class _UserDashboardState extends State<UserDashboard> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    crop['prediction']?.toString() ?? 'Unknown',
+                                    crop['label']?.toString() ?? 'Unknown',
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       color: Colors.green[900],

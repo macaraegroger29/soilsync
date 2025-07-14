@@ -4,7 +4,8 @@ from .views import (
     RegisterView,
     PredictSoilView,
     ListUsersView,
-    ListDatasetView
+    ListDatasetView,
+    WeatherView
 )
 from rest_framework_simplejwt.views import TokenRefreshView
 
@@ -15,4 +16,5 @@ urlpatterns = [
     path('predict/', PredictSoilView.as_view(), name='predict'),
     path('users/', ListUsersView.as_view(), name='list_users'),
     path('dataset/', ListDatasetView.as_view(), name='list_dataset'),
+    path('weather/', WeatherView.as_view(), name='weather'),
 ]
