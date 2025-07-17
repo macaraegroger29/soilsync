@@ -35,41 +35,7 @@ class WeatherService {
 
       print('Fetching rainfall data for location: $latitude, $longitude');
 
-      // Try backend API first
-      try {
-        final baseUrl = await AppConfig.getBaseUrl();
-        final url =
-            Uri.parse('$baseUrl/api/weather/?lat=$latitude&lon=$longitude');
-
-        print('Trying backend API: $url');
-        final response = await http.get(url);
-
-        if (response.statusCode == 200) {
-          final data = json.decode(response.body);
-          final currentWeather = data['current_weather'];
-
-          print('Backend API response: $currentWeather');
-
-          // Fallback: just return current rainfall, no accumulation
-          final weatherData = {
-            'rainfall': currentWeather['rainfall'] ?? 0.0,
-            'rainfall_accumulation': currentWeather['rainfall'] ?? 0.0,
-            'weather_code': currentWeather['weather_code'] ?? 0,
-            'latitude': latitude,
-            'longitude': longitude,
-            'timestamp': DateTime.now().toIso8601String(),
-          };
-
-          print('Parsed rainfall data: $weatherData');
-          return weatherData;
-        } else {
-          print('Backend API failed with status: ${response.statusCode}');
-        }
-      } catch (e) {
-        print('Backend weather API failed, trying direct API: $e');
-      }
-
-      // Fallback to direct Open-Meteo API - only rainfall data
+      // Always use Open-Meteo API for rainfall
       final url = Uri.parse(
           '$_openMeteoUrl/forecast?latitude=$latitude&longitude=$longitude'
           '&current=precipitation,rain,weather_code'
@@ -92,7 +58,7 @@ class WeatherService {
         weatherData['rainfall_accumulation'] = accumulation;
         return weatherData;
       } else {
-        print('Direct API failed with status: ${response.statusCode}');
+        print('Direct API failed with status:  [31m${response.statusCode} [0m');
         throw Exception('Failed to load rainfall data: ${response.statusCode}');
       }
     } catch (e) {
@@ -108,13 +74,18 @@ class WeatherService {
     final current = data['current'];
     final hourly = data['hourly'];
 
-    // Get current rainfall (mm)
+    print('[DEBUG] Open-Meteo API response:');
+    print(data);
+    print('[DEBUG] Parsed current:');
+    print(current);
+
+    // Get current rainfall (mm) - use only 'precipitation' from Open-Meteo
     double currentRainfall = 0.0;
-    if (current != null && current['rain'] != null) {
-      currentRainfall = (current['rain'] as num).toDouble();
-    } else if (current != null && current['precipitation'] != null) {
+    if (current != null && current['precipitation'] != null) {
       currentRainfall = (current['precipitation'] as num).toDouble();
     }
+    print('[DEBUG] Parsed precipitation value:');
+    print(currentRainfall);
 
     // Calculate hourly rainfall for next 24 hours
     List<double> hourlyRainfall = [];

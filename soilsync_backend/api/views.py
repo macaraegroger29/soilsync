@@ -17,6 +17,7 @@ import os
 from django.conf import settings
 from django.core.paginator import Paginator
 from rest_framework.renderers import JSONRenderer
+from django.http import JsonResponse
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -325,22 +326,24 @@ class WeatherView(APIView):
             }
             
             response = requests.get(url, params=params, timeout=10)
+            print(f'[DEBUG] Open-Meteo API URL: {response.url}')
+            print(f'[DEBUG] Open-Meteo API Response: {response.text}')
             
             if response.status_code == 200:
                 data = response.json()
                 
                 # Parse the weather data
                 current = data.get('current', {})
-                
+                print(f'[DEBUG] Parsed current: {current}')
                 # Extract current rainfall data
                 current_weather = {
-                    'rainfall': current.get('rain', current.get('precipitation', 0.0)),
+                    'precipitation': current.get('rain', current.get('precipitation', 0.0)),
                     'weather_code': current.get('weather_code', 0),
                     'latitude': float(lat),
                     'longitude': float(lon),
                     'timestamp': data.get('current_units', {}).get('time', ''),
                 }
-                
+                print(f'[DEBUG] Returning current_weather: {current_weather}')
                 return Response({
                     'current_weather': current_weather,
                 })
@@ -367,5 +370,8 @@ class RootView(APIView):
             "status": "ok",
             "version": "1.0"
         })
+
+def root_view(request):
+    return JsonResponse({"status": "ok"})
 
 

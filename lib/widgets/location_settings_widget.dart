@@ -19,7 +19,6 @@ class _LocationSettingsWidgetState extends State<LocationSettingsWidget>
   final TextEditingController _regionController = TextEditingController();
   final TextEditingController _provinceController = TextEditingController();
   final TextEditingController _cityController = TextEditingController();
-  final TextEditingController _barangayController = TextEditingController();
   bool _isLoading = false;
   String? _currentLocation;
 
@@ -28,7 +27,6 @@ class _LocationSettingsWidgetState extends State<LocationSettingsWidget>
   String _selectedRegionCode = '01';
   String _selectedProvince = 'PANGASINAN';
   String _selectedCity = 'BAYAMBANG';
-  String _selectedBarangay = '';
   bool _locationLoaded = false;
 
   late TabController _tabController;
@@ -49,7 +47,6 @@ class _LocationSettingsWidgetState extends State<LocationSettingsWidget>
     _regionController.dispose();
     _provinceController.dispose();
     _cityController.dispose();
-    _barangayController.dispose();
     super.dispose();
   }
 
@@ -67,7 +64,6 @@ class _LocationSettingsWidgetState extends State<LocationSettingsWidget>
         _provinceController.text =
             location['province'] as String? ?? 'Metro Manila';
         _cityController.text = location['city'] as String? ?? 'Manila';
-        _barangayController.text = location['barangay'] as String? ?? '';
         _currentLocation =
             '${location['latitude']?.toStringAsFixed(4) ?? '14.5995'}, ${location['longitude']?.toStringAsFixed(4) ?? '120.9842'}';
       } else {
@@ -81,7 +77,6 @@ class _LocationSettingsWidgetState extends State<LocationSettingsWidget>
         _provinceController.text =
             deviceLocation['province'] as String? ?? 'Metro Manila';
         _cityController.text = deviceLocation['city'] as String? ?? 'Manila';
-        _barangayController.text = deviceLocation['barangay'] as String? ?? '';
         _currentLocation =
             '${deviceLocation['latitude']?.toStringAsFixed(4) ?? '14.5995'}, ${deviceLocation['longitude']?.toStringAsFixed(4) ?? '120.9842'}';
       }
@@ -92,7 +87,6 @@ class _LocationSettingsWidgetState extends State<LocationSettingsWidget>
       _regionController.text = 'NCR';
       _provinceController.text = 'Metro Manila';
       _cityController.text = 'Manila';
-      _barangayController.text = '';
       _currentLocation = '14.5995, 120.9842 (Manila)';
     } finally {
       setState(() => _isLoading = false);
@@ -111,7 +105,6 @@ class _LocationSettingsWidgetState extends State<LocationSettingsWidget>
       await prefs.setString('user_region', _regionController.text);
       await prefs.setString('user_province', _provinceController.text);
       await prefs.setString('user_city', _cityController.text);
-      await prefs.setString('user_barangay', _barangayController.text);
 
       setState(() {
         _currentLocation =
@@ -142,7 +135,6 @@ class _LocationSettingsWidgetState extends State<LocationSettingsWidget>
       _provinceController.text =
           location['province'] as String? ?? 'Metro Manila';
       _cityController.text = location['city'] as String? ?? 'Manila';
-      _barangayController.text = location['barangay'] as String? ?? '';
       setState(() {
         _currentLocation =
             '${location['latitude']?.toStringAsFixed(4) ?? '14.5995'}, ${location['longitude']?.toStringAsFixed(4) ?? '120.9842'}';
@@ -201,10 +193,6 @@ class _LocationSettingsWidgetState extends State<LocationSettingsWidget>
       _selectedCity = cities.contains(prefs.getString('city'))
           ? prefs.getString('city')!
           : (cities.isNotEmpty ? cities[0] : '');
-      List<String> barangays = _getBarangays();
-      _selectedBarangay = barangays.contains(prefs.getString('barangay'))
-          ? prefs.getString('barangay')!
-          : (barangays.isNotEmpty ? barangays[0] : '');
     });
   }
 
@@ -213,10 +201,40 @@ class _LocationSettingsWidgetState extends State<LocationSettingsWidget>
     await prefs.setString('region_code', _selectedRegionCode);
     await prefs.setString('province', _selectedProvince);
     await prefs.setString('city', _selectedCity);
-    await prefs.setString('barangay', _selectedBarangay);
+
+    // Look up coordinates for the selected city
+    final coords = _getCoordinatesForSelectedCity();
+    if (coords != null && coords['lat'] != null && coords['lon'] != null) {
+      await prefs.setDouble('user_latitude', coords['lat']!);
+      await prefs.setDouble('user_longitude', coords['lon']!);
+      // Synchronize the custom tab fields
+      setState(() {
+        _latitudeController.text = coords['lat']!.toStringAsFixed(6);
+        _longitudeController.text = coords['lon']!.toStringAsFixed(6);
+      });
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Philippines location saved!')),
     );
+  }
+
+  /// Helper to get coordinates for the selected city from _locationData
+  Map<String, double>? _getCoordinatesForSelectedCity() {
+    try {
+      final cityData = _locationData[_selectedRegionCode]['province_list']
+          [_selectedProvince]['municipality_list'][_selectedCity];
+      if (cityData != null &&
+          cityData['lat'] != null &&
+          cityData['lon'] != null) {
+        return {
+          'lat': (cityData['lat'] as num).toDouble(),
+          'lon': (cityData['lon'] as num).toDouble(),
+        };
+      }
+    } catch (e) {
+      // ignore
+    }
+    return null;
   }
 
   List<String> _getRegionCodes() {
@@ -243,15 +261,6 @@ class _LocationSettingsWidgetState extends State<LocationSettingsWidget>
             [_selectedProvince]['municipality_list'] as Map<String, dynamic>)
         .keys
         .toList();
-  }
-
-  List<String> _getBarangays() {
-    if (_locationData[_selectedRegionCode]?['province_list']?[_selectedProvince]
-            ?['municipality_list']?[_selectedCity]?['barangay_list'] ==
-        null) return [];
-    return List<String>.from(_locationData[_selectedRegionCode]['province_list']
-            [_selectedProvince]['municipality_list'][_selectedCity]
-        ['barangay_list']);
   }
 
   void _showError(String message) {
@@ -378,11 +387,6 @@ class _LocationSettingsWidgetState extends State<LocationSettingsWidget>
                                           _selectedCity = cities.isNotEmpty
                                               ? cities[0]
                                               : '';
-                                          final barangays = _getBarangays();
-                                          _selectedBarangay =
-                                              barangays.isNotEmpty
-                                                  ? barangays[0]
-                                                  : '';
                                           _savePhilippinesLocation();
                                         });
                                       }
@@ -410,11 +414,6 @@ class _LocationSettingsWidgetState extends State<LocationSettingsWidget>
                                           _selectedCity = cities.isNotEmpty
                                               ? cities[0]
                                               : '';
-                                          final barangays = _getBarangays();
-                                          _selectedBarangay =
-                                              barangays.isNotEmpty
-                                                  ? barangays[0]
-                                                  : '';
                                           _savePhilippinesLocation();
                                         });
                                       }
@@ -438,34 +437,6 @@ class _LocationSettingsWidgetState extends State<LocationSettingsWidget>
                                           value != _selectedCity) {
                                         setState(() {
                                           _selectedCity = value;
-                                          final barangays = _getBarangays();
-                                          _selectedBarangay =
-                                              barangays.isNotEmpty
-                                                  ? barangays[0]
-                                                  : '';
-                                          _savePhilippinesLocation();
-                                        });
-                                      }
-                                    },
-                                  ),
-                                  const SizedBox(height: 12),
-                                  DropdownButtonFormField<String>(
-                                    value: _selectedBarangay,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Barangay',
-                                      border: OutlineInputBorder(),
-                                    ),
-                                    items: _getBarangays()
-                                        .map((barangay) => DropdownMenuItem(
-                                              value: barangay,
-                                              child: Text(barangay),
-                                            ))
-                                        .toList(),
-                                    onChanged: (value) {
-                                      if (value != null &&
-                                          value != _selectedBarangay) {
-                                        setState(() {
-                                          _selectedBarangay = value;
                                           _savePhilippinesLocation();
                                         });
                                       }

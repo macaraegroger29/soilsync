@@ -20,6 +20,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final TextEditingController _serverIpController = TextEditingController();
+  final TextEditingController _esp32IpController = TextEditingController();
 
   bool isLoading = false;
   String errorMessage = '';
@@ -36,6 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         _checkServerAvailability();
         _loadServerIp();
+        _loadSavedIps();
       }
     });
   }
@@ -62,6 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final baseUrl = await AppConfig.getBaseUrl();
+      print('DEBUG: baseUrl from AppConfig.getBaseUrl() = $baseUrl');
       print('Checking server availability at: $baseUrl/');
       final response = await http.get(
         Uri.parse('$baseUrl/'),
@@ -69,26 +73,23 @@ class _LoginScreenState extends State<LoginScreen> {
       ).timeout(const Duration(seconds: 5));
 
       print('Server check response status: ${response.statusCode}');
-      print(
-          'Server check response body: ${response.body}'); // Add logging for body
+      print('Server check response body: ${response.body}');
 
       // Check for expected 200 OK from our root view
       if (response.statusCode == 200) {
         try {
-          print('Attempting to decode JSON response...'); // Add log
+          print('Attempting to decode JSON response...');
           final responseData = jsonDecode(response.body);
-          print('JSON decoded successfully: $responseData'); // Add log
+          print('JSON decoded successfully: $responseData');
           if (responseData['status'] == 'ok') {
             available = true;
             print('Server is available and responded correctly.');
           } else {
-            checkError =
-                'Server responded unexpectedly (status != ok).'; // More specific error
+            checkError = 'Server responded unexpectedly (status != ok).';
             print('Server check error: $checkError Data: $responseData');
           }
         } catch (e) {
-          checkError =
-              'Failed to parse server response (JSON Decode Error).'; // More specific error
+          checkError = 'Failed to parse server response (JSON Decode Error).';
           print('Server check error: $checkError Error: $e');
         }
       } else {
@@ -106,8 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
       print('Server check error: $checkError Details: $e');
     }
 
-    print(
-        'Server check finished. Is available: $available'); // Add log for final result
+    print('Server check finished. Is available: $available');
 
     // Update state after checks are complete
     if (mounted) {
@@ -128,22 +128,44 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
+  Future<void> _loadSavedIps() async {
+    final prefs = await SharedPreferences.getInstance();
+    _serverIpController.text = prefs.getString('server_ip') ?? '';
+    _esp32IpController.text = prefs.getString('esp32_ip') ?? '';
+  }
+
+  Future<void> _saveIps() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('server_ip', _serverIpController.text.trim());
+    await prefs.setString('esp32_ip', _esp32IpController.text.trim());
+  }
+
   Future<void> _showIpSettings() async {
-    final TextEditingController ipController =
-        TextEditingController(text: serverIp);
+    final TextEditingController serverIpController =
+        TextEditingController(text: _serverIpController.text);
+    final TextEditingController esp32IpController =
+        TextEditingController(text: _esp32IpController.text);
 
     return showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Server Settings'),
+        title: const Text('Network Settings'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
-              controller: ipController,
+              controller: serverIpController,
               decoration: const InputDecoration(
                 labelText: 'Server IP Address',
                 hintText: 'e.g., 192.168.1.100',
+              ),
+            ),
+            SizedBox(height: 12),
+            TextField(
+              controller: esp32IpController,
+              decoration: const InputDecoration(
+                labelText: 'ESP32 IP Address',
+                hintText: 'e.g., 192.168.1.101',
               ),
             ),
           ],
@@ -155,22 +177,24 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           TextButton(
             onPressed: () async {
-              final newIp = ipController.text.trim(); // Trim input
-              if (newIp.isNotEmpty) {
-                // Basic check if IP is not empty
-                await AppConfig.setBaseUrl(newIp);
+              final newServerIp = serverIpController.text.trim();
+              final newEsp32Ip = esp32IpController.text.trim();
+              if (newServerIp.isNotEmpty) {
+                await AppConfig.setBaseUrl(newServerIp);
                 setState(() {
-                  serverIp = newIp;
-                  // Optionally reset error message when changing IP
+                  serverIp = newServerIp;
+                  _serverIpController.text = newServerIp;
+                  _esp32IpController.text = newEsp32Ip;
                   errorMessage = '';
                 });
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setString('server_ip', newServerIp);
+                await prefs.setString('esp32_ip', newEsp32Ip);
                 Navigator.pop(context);
-                // *** Add call to re-check server availability ***
                 await _checkServerAvailability();
               } else {
-                // Optional: Show error if IP field is empty
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('IP Address cannot be empty')),
+                  SnackBar(content: Text('Server IP Address cannot be empty')),
                 );
               }
             },
@@ -224,8 +248,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final baseUrl = await AppConfig.getBaseUrl();
       final loginUrl = '$baseUrl/api/token/';
-      print('Debug: Base URL: $baseUrl');
-      print('Debug: Login URL: $loginUrl');
+      print('DEBUG: Attempting login to $loginUrl');
 
       // Trim whitespace from username and password
       final String username = usernameController.text.trim();

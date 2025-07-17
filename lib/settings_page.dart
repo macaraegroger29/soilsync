@@ -18,7 +18,6 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _isNotificationsEnabled = true;
   String _selectedLanguage = 'English';
   String _selectedUnit = 'Metric';
-  String _selectedRainfallPeriod = '24 hours';
   Map<String, dynamic> _locationData = {};
   String _selectedRegionCode = '01';
   String _selectedProvince = 'PANGASINAN';
@@ -40,8 +39,6 @@ class _SettingsPageState extends State<SettingsPage> {
       _isNotificationsEnabled = prefs.getBool('notifications') ?? true;
       _selectedLanguage = prefs.getString('language') ?? 'English';
       _selectedUnit = prefs.getString('unit') ?? 'Metric';
-      _selectedRainfallPeriod =
-          prefs.getString('rainfall_accumulation_period') ?? '24 hours';
     });
   }
 
@@ -72,8 +69,6 @@ class _SettingsPageState extends State<SettingsPage> {
     await prefs.setBool('notifications', _isNotificationsEnabled);
     await prefs.setString('language', _selectedLanguage);
     await prefs.setString('unit', _selectedUnit);
-    await prefs.setString(
-        'rainfall_accumulation_period', _selectedRainfallPeriod);
   }
 
   Future<void> _saveLocation() async {
@@ -230,30 +225,6 @@ class _SettingsPageState extends State<SettingsPage> {
                           if (newValue != null) {
                             setState(() {
                               _selectedUnit = newValue;
-                              _saveSettings();
-                            });
-                          }
-                        },
-                        underline: Container(),
-                      ),
-                    ),
-                    Divider(height: 1),
-                    _buildSettingTile(
-                      'Rainfall Accumulation',
-                      'Select accumulation period',
-                      Icons.water_drop,
-                      DropdownButton<String>(
-                        value: _selectedRainfallPeriod,
-                        items: ['24 hours', '7 days'].map((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          );
-                        }).toList(),
-                        onChanged: (String? newValue) {
-                          if (newValue != null) {
-                            setState(() {
-                              _selectedRainfallPeriod = newValue;
                               _saveSettings();
                             });
                           }

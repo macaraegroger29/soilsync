@@ -17,7 +17,16 @@ class AppConfig {
 
   static Future<String> getBaseUrl() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('server_ip') ?? baseUrl;
+    final saved = prefs.getString('server_ip');
+    if (saved == null || saved.isEmpty) {
+      return baseUrl;
+    }
+    // If saved value starts with 'http', return as is
+    if (saved.startsWith('http')) {
+      return saved;
+    }
+    // If saved value is just an IP, add http:// and :8000
+    return 'http://$saved:8000';
   }
 
   static Future<void> setBaseUrl(String ip) async {

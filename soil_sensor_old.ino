@@ -1,4 +1,5 @@
-#include <HardwareSerial.h>
+#include <WiFi.h>
+#include <WebServer.h>
 
 #define RXD2 16  // RO
 #define TXD2 17  // DI
@@ -6,6 +7,18 @@
 #define DE 4
 
 HardwareSerial modbusSerial(2);
+
+// WiFi credentials
+const char* ssid = "return 0;";
+const char* password = "helloworld";
+
+WebServer server(80);
+
+// Global variables to store sensor readings
+float moisture_percent = 0;
+float temperature = 0;
+float ph = 0;
+uint16_t nitrogen = 0, phosphorus = 0, potassium = 0;
 
 void setup() {
   Serial.begin(115200);
@@ -18,9 +31,35 @@ void setup() {
   digitalWrite(DE, LOW);
 
   Serial.println("Starting RS485 sensor test...");
+
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nWiFi connected. IP address: ");
+  Serial.println(WiFi.localIP());
+
+  // HTTP endpoint for sensor data
+  server.on("/sensor", HTTP_GET, []() {
+    String json = "{";
+    json += "\"moisture\":" + String(moisture_percent, 1) + ",";
+    json += "\"temperature\":" + String(temperature, 1) + ",";
+    json += "\"ph\":" + String(ph, 1) + ",";
+    json += "\"nitrogen\":" + String(nitrogen) + ",";
+    json += "\"phosphorus\":" + String(phosphorus) + ",";
+    json += "\"potassium\":" + String(potassium);
+    json += "}";
+    server.send(200, "application/json", json);
+  });
+
+  server.begin();
 }
 
 void loop() {
+  server.handleClient();
+
   byte request[] = {0x01, 0x03, 0x00, 0x00, 0x00, 0x07, 0x04, 0x08};
 
   digitalWrite(DE, HIGH);
