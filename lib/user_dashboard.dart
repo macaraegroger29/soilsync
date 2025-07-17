@@ -9,6 +9,8 @@ import 'config.dart';
 import 'profile_page.dart';
 import 'settings_page.dart';
 import 'services/weather_service.dart';
+import 'widgets/location_settings_widget.dart'; // Add this import
+import 'package:multicast_dns/multicast_dns.dart';
 
 class UserDashboard extends StatefulWidget {
   const UserDashboard({super.key});
@@ -17,7 +19,8 @@ class UserDashboard extends StatefulWidget {
   _UserDashboardState createState() => _UserDashboardState();
 }
 
-class _UserDashboardState extends State<UserDashboard> {
+class _UserDashboardState extends State<UserDashboard>
+    with WidgetsBindingObserver {
   final _formKey = GlobalKey<FormState>();
   final _nitrogenController = TextEditingController();
   final _phosphorusController = TextEditingController();
@@ -37,17 +40,77 @@ class _UserDashboardState extends State<UserDashboard> {
   final WeatherService _weatherService = WeatherService();
   List<Map<String, dynamic>>? _latestTopCrops; // Store latest top crops
 
+  // Add ESP32 IP address here (update as needed)
+  String esp32Ip = '';
+  Timer? _esp32Timer;
+
+  // Soil sensor values
+  double? soilMoisture;
+  double? soilTemperature;
+  double? soilPh;
+  int? soilNitrogen;
+  int? soilPhosphorus;
+  int? soilPotassium;
+  String esp32Status = 'Unknown'; // Connected, Disconnected, Error
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this); // Add observer
     _loadPredictionHistory();
     _getSensorData();
     _startSensorTimer();
+    _autoDetectEsp32AndStartTimer();
+    // Force a fetch on startup
+    _fetchEsp32SensorData();
+  }
+
+  Future<void> _autoDetectEsp32AndStartTimer() async {
+    String? foundIp = await findEsp32Ip();
+    String ipToUse;
+    if (foundIp != null) {
+      ipToUse = foundIp;
+    } else {
+      final prefs = await SharedPreferences.getInstance();
+      ipToUse = prefs.getString('esp32_ip') ?? '';
+    }
+    setState(() {
+      esp32Ip = ipToUse;
+    });
+    _startEsp32Timer();
+  }
+
+  Future<String?> findEsp32Ip() async {
+    final MDnsClient client = MDnsClient();
+    await client.start();
+    try {
+      await for (final PtrResourceRecord ptr
+          in client.lookup<PtrResourceRecord>(
+              ResourceRecordQuery.serverPointer('_http._tcp.local'))) {
+        await for (final SrvResourceRecord srv
+            in client.lookup<SrvResourceRecord>(
+                ResourceRecordQuery.service(ptr.domainName))) {
+          await for (final IPAddressResourceRecord ip
+              in client.lookup<IPAddressResourceRecord>(
+                  ResourceRecordQuery.addressIPv4(srv.target))) {
+            print('Found ESP32 at: ${ip.address.address}');
+            client.stop();
+            return ip.address.address;
+          }
+        }
+      }
+    } catch (e) {
+      print('mDNS discovery error: $e');
+    }
+    client.stop();
+    return null;
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this); // Remove observer
     _sensorTimer?.cancel();
+    _esp32Timer?.cancel();
     _nitrogenController.dispose();
     _phosphorusController.dispose();
     _potassiumController.dispose();
@@ -56,6 +119,14 @@ class _UserDashboardState extends State<UserDashboard> {
     _phController.dispose();
     _rainfallController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // When returning to the dashboard, refresh weather data
+      _getSensorData();
+    }
   }
 
   void _startSensorTimer() {
@@ -68,6 +139,15 @@ class _UserDashboardState extends State<UserDashboard> {
         _getSensorData();
       }
     });
+  }
+
+  void _startEsp32Timer() {
+    print('Starting ESP32 timer');
+    _esp32Timer?.cancel();
+    _esp32Timer = Timer.periodic(Duration(seconds: 5), (timer) {
+      _fetchEsp32SensorData();
+    });
+    _fetchEsp32SensorData();
   }
 
   Future<void> _loadPredictionHistory() async {
@@ -222,61 +302,109 @@ class _UserDashboardState extends State<UserDashboard> {
 
       print('Dashboard received rainfall data: $weatherData');
 
-      // Generate mock data for soil parameters (nitrogen, phosphorus, potassium, pH)
-      // In a real implementation, these would come from actual soil sensors
+      // Use ESP32 sensor data if available
       setState(() {
-        _nitrogenController.text =
-            (20 + Random().nextDouble() * 10).toStringAsFixed(2);
-        _phosphorusController.text =
-            (30 + Random().nextDouble() * 20).toStringAsFixed(2);
-        _potassiumController.text =
-            (40 + Random().nextDouble() * 30).toStringAsFixed(2);
-
-        // Use mock data for temperature and humidity (will be replaced by soil sensor)
-        _temperatureController.text =
-            (25 + Random().nextDouble() * 5).toStringAsFixed(2);
-        _humidityController.text =
-            (60 + Random().nextDouble() * 20).toStringAsFixed(2);
-        _phController.text =
-            (6.5 + Random().nextDouble() * 1.2).toStringAsFixed(2);
-
-        // Use rainfall accumulation from weather API
+        if (soilNitrogen != null &&
+            soilPhosphorus != null &&
+            soilPotassium != null &&
+            soilTemperature != null &&
+            soilMoisture != null &&
+            soilPh != null) {
+          // Update controllers
+          _nitrogenController.text = soilNitrogen.toString();
+          _phosphorusController.text = soilPhosphorus.toString();
+          _potassiumController.text = soilPotassium.toString();
+          _temperatureController.text = soilTemperature.toString();
+          _humidityController.text = soilMoisture.toString();
+          _phController.text = soilPh.toString();
+          // Update state variables to ensure UI card updates
+          // (Redundant assignment, but ensures not null)
+          soilMoisture = soilMoisture;
+          soilTemperature = soilTemperature;
+          soilPh = soilPh;
+          soilNitrogen = soilNitrogen;
+          soilPhosphorus = soilPhosphorus;
+          soilPotassium = soilPotassium;
+        } else {
+          _nitrogenController.text = '0';
+          _phosphorusController.text = '0';
+          _potassiumController.text = '0';
+          _temperatureController.text = '0';
+          _humidityController.text = '0';
+          _phController.text = '0';
+          // Set variables to zero too!
+          soilMoisture = 0;
+          soilTemperature = 0;
+          soilPh = 0;
+          soilNitrogen = 0;
+          soilPhosphorus = 0;
+          soilPotassium = 0;
+        }
+        // Use rainfall from weather API (current precipitation)
         _rainfallController.text =
-            (weatherData['rainfall_accumulation'] as double).toStringAsFixed(2);
+            (weatherData['rainfall'] as double).toStringAsFixed(2);
       });
 
       // Automatically predict when in sensor mode
       if (_isAutomaticMode) {
         await _predictSoil();
       }
-    } catch (e) {
-      // Fallback to mock data if weather service fails
-      setState(() {
-        _nitrogenController.text =
-            (20 + Random().nextDouble() * 10).toStringAsFixed(2);
-        _phosphorusController.text =
-            (30 + Random().nextDouble() * 20).toStringAsFixed(2);
-        _potassiumController.text =
-            (40 + Random().nextDouble() * 30).toStringAsFixed(2);
-        _temperatureController.text =
-            (25 + Random().nextDouble() * 5).toStringAsFixed(2);
-        _humidityController.text =
-            (60 + Random().nextDouble() * 20).toStringAsFixed(2);
-        _phController.text =
-            (6.5 + Random().nextDouble() * 1.5).toStringAsFixed(2);
-        _rainfallController.text =
-            (100 + Random().nextDouble() * 50).toStringAsFixed(2);
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Weather data unavailable, using fallback values: $e'),
-          backgroundColor: Colors.orange,
-        ),
-      );
     } finally {
       setState(() {
         _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _fetchEsp32SensorData() async {
+    print('Calling _fetchEsp32SensorData()');
+    try {
+      print('ESP32 IP: $esp32Ip');
+      final response = await http
+          .get(Uri.parse('http://$esp32Ip/sensor'))
+          .timeout(Duration(seconds: 35));
+      print('ESP32 response: ${response.body}');
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('Parsed ESP32 data: $data');
+        setState(() {
+          soilMoisture = (data['moisture'] as num?)?.toDouble();
+          soilTemperature = (data['temperature'] as num?)?.toDouble();
+          soilPh = (data['ph'] as num?)?.toDouble();
+          soilNitrogen = (data['nitrogen'] as num?)?.toInt();
+          soilPhosphorus = (data['phosphorus'] as num?)?.toInt();
+          soilPotassium = (data['potassium'] as num?)?.toInt();
+          esp32Status = 'Connected';
+          _nitrogenController.text = soilNitrogen?.toString() ?? '';
+          _phosphorusController.text = soilPhosphorus?.toString() ?? '';
+          _potassiumController.text = soilPotassium?.toString() ?? '';
+          _temperatureController.text = soilTemperature?.toString() ?? '';
+          _phController.text = soilPh?.toString() ?? '';
+          _humidityController.text = soilMoisture?.toString() ?? '';
+        });
+        print(
+            'Set state: $soilMoisture, $soilTemperature, $soilPh, $soilNitrogen, $soilPhosphorus, $soilPotassium');
+      } else {
+        setState(() {
+          esp32Status = 'Error';
+          soilMoisture = 0;
+          soilTemperature = 0;
+          soilPh = 0;
+          soilNitrogen = 0;
+          soilPhosphorus = 0;
+          soilPotassium = 0;
+        });
+      }
+    } catch (e) {
+      print('ESP32 fetch error: $e');
+      setState(() {
+        esp32Status = 'Disconnected';
+        soilMoisture = 0;
+        soilTemperature = 0;
+        soilPh = 0;
+        soilNitrogen = 0;
+        soilPhosphorus = 0;
+        soilPotassium = 0;
       });
     }
   }
@@ -333,7 +461,7 @@ class _UserDashboardState extends State<UserDashboard> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => SettingsPage()),
-                );
+                ).then((_) => _getSensorData());
               },
             ),
             ListTile(
@@ -396,6 +524,54 @@ class _UserDashboardState extends State<UserDashboard> {
           BottomNavigationBarItem(
             icon: Icon(Icons.analytics),
             label: 'Analytics',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSensorDataCard() {
+    return Card(
+      elevation: 8,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Soil Sensor (ESP32)',
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green[700])),
+            SizedBox(height: 12),
+            _buildSensorRow('Moisture', soilMoisture, '%'),
+            _buildSensorRow('Temperature', soilTemperature, '°C'),
+            _buildSensorRow('pH', soilPh, ''),
+            _buildSensorRow('Nitrogen', soilNitrogen, 'mg/kg'),
+            _buildSensorRow('Phosphorus', soilPhosphorus, 'mg/kg'),
+            _buildSensorRow('Potassium', soilPotassium, 'mg/kg'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSensorRow(String label, dynamic value, String unit) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(color: Colors.grey[700], fontSize: 14)),
+          Text(
+            value != null ? '$value $unit' : '--',
+            style: TextStyle(
+                color: Colors.green[700],
+                fontWeight: FontWeight.bold,
+                fontSize: 14),
           ),
         ],
       ),
