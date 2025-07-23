@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'services/location_data_service.dart';
 import 'widgets/location_settings_widget.dart';
+import 'pages/wifi_settings_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -262,6 +263,36 @@ class _SettingsPageState extends State<SettingsPage> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => const LocationSettingsWidget(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              Card(
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                child: ListTile(
+                  leading: Icon(Icons.wifi, color: Colors.green[700]),
+                  title: Text(
+                    'WiFi Settings',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                      color: Colors.green[700],
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Configure ESP32 WiFi credentials',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 12,
+                    ),
+                  ),
+                  trailing: Icon(Icons.arrow_forward_ios,
+                      size: 16, color: Colors.grey[600]),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const WifiSettingsPage(),
                       ),
                     );
                   },

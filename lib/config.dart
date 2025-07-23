@@ -8,6 +8,10 @@ class AppConfig {
   // // PC to physical device
   static const String baseUrl = 'http://192.168.254.174:8000';
 
+  // Add the IP address for your ESP32
+  static const String esp32Ip =
+      '192.168.1.100'; // <-- CHANGE THIS to your ESP32's IP
+
   // online db to physical device
   // static const String baseUrl = 'https://soilsync.pythonanywhere.com';
 

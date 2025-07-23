@@ -1,6 +1,4 @@
-#include <WiFi.h>
-#include <WebServer.h>
-#include <ESPmDNS.h>  // <-- Add this
+#include <BluetoothSerial.h>
 
 #define RXD2 16  // RO
 #define TXD2 17  // DI
@@ -8,12 +6,7 @@
 #define DE 4
 
 HardwareSerial modbusSerial(2);
-
-// WiFi credentials
-const char* ssid = "int main()";
-const char* password = "helloworld";
-
-WebServer server(80);
+BluetoothSerial SerialBT;
 
 // Global variables to store sensor readings
 float moisture_percent = 0;
@@ -21,9 +14,12 @@ float temperature = 0;
 float ph = 0;
 uint16_t nitrogen = 0, phosphorus = 0, potassium = 0;
 
-// Add timing variables for non-blocking sensor read
 unsigned long lastSensorRead = 0;
 const unsigned long sensorReadInterval = 5000; // 5 seconds
+
+// Add for always discoverable
+unsigned long lastBtRestart = 0;
+const unsigned long btRestartInterval = 15000; // 15 seconds
 
 void setup() {
   Serial.begin(115200);
@@ -37,38 +33,9 @@ void setup() {
 
   Serial.println("Starting RS485 sensor test...");
 
-  WiFi.begin(ssid, password);
-  Serial.print("Connecting to WiFi");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("\nWiFi connected. IP address: ");
-  Serial.println(WiFi.localIP());
-
-  // Start mDNS responder
-  if (!MDNS.begin("esp32")) {  // "esp32" is the hostname, so esp32.local
-    Serial.println("Error starting mDNS");
-    while (1) {
-      delay(1000);
-    }
-  }
-  Serial.println("mDNS responder started");
-
-  // HTTP endpoint for sensor data
-  server.on("/sensor", HTTP_GET, []() {
-    String json = "{";
-    json += "\"moisture\":" + String(moisture_percent, 1) + ",";
-    json += "\"temperature\":" + String(temperature, 1) + ",";
-    json += "\"ph\":" + String(ph, 1) + ",";
-    json += "\"nitrogen\":" + String(nitrogen) + ",";
-    json += "\"phosphorus\":" + String(phosphorus) + ",";
-    json += "\"potassium\":" + String(potassium);
-    json += "}";
-    server.send(200, "application/json", json);
-  });
-
-  server.begin();
+  // Start Classic Bluetooth SPP
+  SerialBT.begin("SoilSync-ESP32");
+  Serial.println("Bluetooth device started, now you can pair it!");
 }
 
 void readSensor() {
@@ -123,12 +90,32 @@ void readSensor() {
   }
 }
 
-void loop() {
-  server.handleClient();
+void sendSensorData() {
+  // Send as CSV: moisture,temperature,ph,nitrogen,phosphorus,potassium\n
+  String data = String(moisture_percent, 1) + "," +
+                String(temperature, 1) + "," +
+                String(ph, 1) + "," +
+                String(nitrogen) + "," +
+                String(phosphorus) + "," +
+                String(potassium) + "\n";
+  SerialBT.print(data);
+}
 
+void loop() {
   // Only read sensors every 5 seconds (non-blocking)
   if (millis() - lastSensorRead > sensorReadInterval) {
     lastSensorRead = millis();
     readSensor();
+    if (SerialBT.hasClient()) {
+      sendSensorData();
+    }
+  }
+
+  // Restart Bluetooth advertising if not connected, every 15 seconds
+  if (!SerialBT.hasClient() && millis() - lastBtRestart > btRestartInterval) {
+    SerialBT.end();
+    delay(500);
+    SerialBT.begin("SoilSync-ESP32");
+    lastBtRestart = millis();
   }
 }

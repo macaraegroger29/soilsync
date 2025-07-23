@@ -10,7 +10,9 @@ import 'profile_page.dart';
 import 'settings_page.dart';
 import 'services/weather_service.dart';
 import 'widgets/location_settings_widget.dart'; // Add this import
-import 'package:multicast_dns/multicast_dns.dart';
+import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'dart:typed_data';
+import 'package:permission_handler/permission_handler.dart';
 
 class UserDashboard extends StatefulWidget {
   const UserDashboard({super.key});
@@ -53,6 +55,21 @@ class _UserDashboardState extends State<UserDashboard>
   int? soilPotassium;
   String esp32Status = 'Unknown'; // Connected, Disconnected, Error
 
+  // Bluetooth fields
+  FlutterBluetoothSerial bluetooth = FlutterBluetoothSerial.instance;
+  BluetoothConnection? btConnection;
+  List<BluetoothDevice> btDevicesList = [];
+  BluetoothDevice? btSelectedDevice;
+  bool btIsConnecting = false;
+  bool btIsConnected = false;
+  String btStatus = 'Idle';
+  static const String _lastDeviceKey = 'last_connected_bt_device';
+
+  // Discovery
+  StreamSubscription<BluetoothDiscoveryResult>? _discoveryStreamSubscription;
+  List<BluetoothDiscoveryResult> _discoveredDevices = [];
+  bool _isDiscovering = false;
+
   @override
   void initState() {
     super.initState();
@@ -60,51 +77,20 @@ class _UserDashboardState extends State<UserDashboard>
     _loadPredictionHistory();
     _getSensorData();
     _startSensorTimer();
-    _autoDetectEsp32AndStartTimer();
-    // Force a fetch on startup
-    _fetchEsp32SensorData();
-  }
-
-  Future<void> _autoDetectEsp32AndStartTimer() async {
-    String? foundIp = await findEsp32Ip();
-    String ipToUse;
-    if (foundIp != null) {
-      ipToUse = foundIp;
-    } else {
-      final prefs = await SharedPreferences.getInstance();
-      ipToUse = prefs.getString('esp32_ip') ?? '';
-    }
-    setState(() {
-      esp32Ip = ipToUse;
-    });
-    _startEsp32Timer();
-  }
-
-  Future<String?> findEsp32Ip() async {
-    final MDnsClient client = MDnsClient();
-    await client.start();
-    try {
-      await for (final PtrResourceRecord ptr
-          in client.lookup<PtrResourceRecord>(
-              ResourceRecordQuery.serverPointer('_http._tcp.local'))) {
-        await for (final SrvResourceRecord srv
-            in client.lookup<SrvResourceRecord>(
-                ResourceRecordQuery.service(ptr.domainName))) {
-          await for (final IPAddressResourceRecord ip
-              in client.lookup<IPAddressResourceRecord>(
-                  ResourceRecordQuery.addressIPv4(srv.target))) {
-            print('Found ESP32 at: ${ip.address.address}');
-            client.stop();
-            return ip.address.address;
-          }
-        }
+    _btRequestPermissions().then((granted) {
+      if (granted) {
+        _btGetBondedDevices();
+        // _btAutoConnectLastDevice(); // Removed auto-connect on startup
+      } else {
+        setState(() {
+          btStatus =
+              'Bluetooth permissions denied. Please enable permissions in app settings.';
+        });
       }
-    } catch (e) {
-      print('mDNS discovery error: $e');
-    }
-    client.stop();
-    return null;
+    });
   }
+
+  // Remove _autoDetectEsp32AndStartTimer and findEsp32Ip methods
 
   @override
   void dispose() {
@@ -118,6 +104,8 @@ class _UserDashboardState extends State<UserDashboard>
     _humidityController.dispose();
     _phController.dispose();
     _rainfallController.dispose();
+    _discoveryStreamSubscription?.cancel();
+    btConnection?.close();
     super.dispose();
   }
 
@@ -189,6 +177,14 @@ class _UserDashboardState extends State<UserDashboard>
   }
 
   Future<void> _predictSoil() async {
+    // Prevent prediction in sensor input mode if sensor is disconnected
+    if (_isAutomaticMode && !btIsConnected) {
+      setState(() {
+        _predictionResult = null;
+        _latestTopCrops = null;
+      });
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
@@ -290,19 +286,22 @@ class _UserDashboardState extends State<UserDashboard>
 
   Future<void> _getSensorData() async {
     if (_isPredicting) return;
-
     setState(() {
       _isLoading = true;
     });
-
     try {
+      // If in sensor input mode and sensor is disconnected, do not predict
+      if (_isAutomaticMode && !btIsConnected) {
+        setState(() {
+          _predictionResult = null;
+          _latestTopCrops = null;
+        });
+        return;
+      }
       // Get real rainfall data from weather API
       final weatherData =
           await _weatherService.getCurrentWeather(forceRefresh: true);
-
       print('Dashboard received rainfall data: $weatherData');
-
-      // Use ESP32 sensor data if available
       setState(() {
         if (soilNitrogen != null &&
             soilPhosphorus != null &&
@@ -310,15 +309,12 @@ class _UserDashboardState extends State<UserDashboard>
             soilTemperature != null &&
             soilMoisture != null &&
             soilPh != null) {
-          // Update controllers
           _nitrogenController.text = soilNitrogen.toString();
           _phosphorusController.text = soilPhosphorus.toString();
           _potassiumController.text = soilPotassium.toString();
           _temperatureController.text = soilTemperature.toString();
           _humidityController.text = soilMoisture.toString();
           _phController.text = soilPh.toString();
-          // Update state variables to ensure UI card updates
-          // (Redundant assignment, but ensures not null)
           soilMoisture = soilMoisture;
           soilTemperature = soilTemperature;
           soilPh = soilPh;
@@ -332,7 +328,6 @@ class _UserDashboardState extends State<UserDashboard>
           _temperatureController.text = '0';
           _humidityController.text = '0';
           _phController.text = '0';
-          // Set variables to zero too!
           soilMoisture = 0;
           soilTemperature = 0;
           soilPh = 0;
@@ -340,12 +335,9 @@ class _UserDashboardState extends State<UserDashboard>
           soilPhosphorus = 0;
           soilPotassium = 0;
         }
-        // Use rainfall from weather API (current precipitation)
         _rainfallController.text =
             (weatherData['rainfall'] as double).toStringAsFixed(2);
       });
-
-      // Automatically predict when in sensor mode
       if (_isAutomaticMode) {
         await _predictSoil();
       }
@@ -354,6 +346,126 @@ class _UserDashboardState extends State<UserDashboard>
         _isLoading = false;
       });
     }
+  }
+
+  void _startDiscovery() {
+    _discoveryStreamSubscription?.cancel();
+    setState(() {
+      _discoveredDevices.clear();
+      _isDiscovering = true;
+    });
+    _discoveryStreamSubscription = bluetooth.startDiscovery().listen((r) {
+      setState(() {
+        // Avoid duplicates by address
+        if (!_discoveredDevices
+            .any((d) => d.device.address == r.device.address)) {
+          _discoveredDevices.add(r);
+        }
+      });
+    }, onError: (e) {
+      setState(() {
+        _isDiscovering = false;
+      });
+    }, onDone: () {
+      setState(() {
+        _isDiscovering = false;
+      });
+    });
+    // Add a manual timeout as a fallback
+    Future.delayed(Duration(seconds: 15), () {
+      if (_isDiscovering) {
+        _discoveryStreamSubscription?.cancel();
+        setState(() {
+          _isDiscovering = false;
+        });
+      }
+    });
+  }
+
+  void _pairDevice(BluetoothDevice device) async {
+    try {
+      bool bonded = false;
+      if (!device.isBonded) {
+        bonded = (await FlutterBluetoothSerial.instance
+                .bondDeviceAtAddress(device.address)) ==
+            true;
+      }
+      if (bonded) {
+        await _btGetBondedDevices();
+        _startDiscovery(); // Restart discovery to update discovered devices
+        setState(() {
+          btStatus = 'Device paired!';
+        });
+      } else {
+        setState(() {
+          btStatus = 'Pairing failed or cancelled.';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        btStatus = 'Pairing error: $e';
+      });
+    }
+  }
+
+  // Add unpair method
+  void _unpairDevice(BluetoothDevice device) async {
+    try {
+      bool removed = (await FlutterBluetoothSerial.instance
+              .removeDeviceBondWithAddress(device.address)) ==
+          true;
+      if (removed) {
+        await _btGetBondedDevices();
+        _startDiscovery(); // Restart discovery to update discovered devices
+        setState(() {
+          btStatus = 'Device unpaired!';
+        });
+        // Show user-friendly dialog
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text('Device Unpaired'),
+              content: Text(
+                  'If you don\'t see your device in the list, restart your ESP32 and tap Scan again.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
+      } else {
+        setState(() {
+          btStatus = 'Failed to unpair device.';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        btStatus = 'Unpairing error: $e';
+      });
+    }
+  }
+
+  // --- Sensor Page Widget ---
+  Widget _buildSensorPage() {
+    return BluetoothClassicSensorPage(
+      devicesList: btDevicesList,
+      discoveredDevices: _discoveredDevices,
+      isConnected: btIsConnected,
+      isConnecting: btIsConnecting,
+      selectedDevice: btSelectedDevice,
+      status: btStatus,
+      isDiscovering: _isDiscovering,
+      onRefresh: _btGetBondedDevices,
+      onScan: _startDiscovery,
+      onConnect: _btConnect,
+      onDisconnect: _btDisconnect,
+      onPair: _pairDevice,
+      onUnpair: _unpairDevice,
+    );
   }
 
   Future<void> _fetchEsp32SensorData() async {
@@ -406,6 +518,128 @@ class _UserDashboardState extends State<UserDashboard>
         soilPhosphorus = 0;
         soilPotassium = 0;
       });
+    }
+  }
+
+  // Bluetooth helper methods
+  Future<bool> _btRequestPermissions() async {
+    Map<Permission, PermissionStatus> statuses = await [
+      Permission.bluetooth,
+      Permission.bluetoothScan,
+      Permission.bluetoothConnect,
+      Permission.location,
+    ].request();
+    bool allGranted = statuses.values.every((s) => s.isGranted);
+    return allGranted;
+  }
+
+  Future<void> _btGetBondedDevices() async {
+    try {
+      List<BluetoothDevice> devices = await bluetooth.getBondedDevices();
+      setState(() {
+        btDevicesList = devices;
+        btStatus = btDevicesList.isEmpty
+            ? 'No paired Bluetooth devices found. Pair in Bluetooth settings.'
+            : 'Select device to connect.';
+      });
+    } catch (e) {
+      setState(() {
+        btStatus = 'Failed to get paired devices: $e';
+      });
+    }
+  }
+
+  Future<void> _btAutoConnectLastDevice() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lastAddress = prefs.getString(_lastDeviceKey);
+    if (lastAddress != null && btDevicesList.isNotEmpty) {
+      final device = btDevicesList.firstWhere(
+        (d) => d.address == lastAddress,
+        orElse: () => btDevicesList.first,
+      );
+      if (!btIsConnected && !btIsConnecting) {
+        _btConnect(device, auto: true);
+      }
+    }
+  }
+
+  void _btConnect(BluetoothDevice device, {bool auto = false}) async {
+    if (btIsConnecting || btIsConnected) return;
+    setState(() {
+      btIsConnecting = true;
+      btStatus = auto ? 'Auto-connecting...' : 'Connecting...';
+      btSelectedDevice = device;
+    });
+    try {
+      btConnection = await BluetoothConnection.toAddress(device.address);
+      setState(() {
+        btIsConnected = true;
+        btIsConnecting = false;
+        btStatus = 'Connected! Waiting for data...';
+      });
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_lastDeviceKey, device.address);
+      btConnection!.input!.listen(_btOnDataReceived).onDone(() {
+        setState(() {
+          btIsConnected = false;
+          btStatus = 'Disconnected.';
+        });
+      });
+    } catch (e) {
+      setState(() {
+        btIsConnecting = false;
+        btStatus = 'Connection failed: $e';
+      });
+      if (auto) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(_lastDeviceKey);
+      }
+    }
+  }
+
+  void _btDisconnect() async {
+    await btConnection?.close();
+    setState(() {
+      btIsConnected = false;
+      btStatus = 'Disconnected.';
+      btSelectedDevice = null;
+      // Reset sensor values and controllers to zero
+      soilMoisture = 0;
+      soilTemperature = 0;
+      soilPh = 0;
+      soilNitrogen = 0;
+      soilPhosphorus = 0;
+      soilPotassium = 0;
+      _nitrogenController.text = '0';
+      _phosphorusController.text = '0';
+      _potassiumController.text = '0';
+      _temperatureController.text = '0';
+      _phController.text = '0';
+      _humidityController.text = '0';
+    });
+  }
+
+  void _btOnDataReceived(Uint8List data) {
+    String dataStr = String.fromCharCodes(data).trim();
+    for (var line in dataStr.split('\n')) {
+      var parts = line.split(',');
+      if (parts.length == 6) {
+        setState(() {
+          soilMoisture = double.tryParse(parts[0]);
+          soilTemperature = double.tryParse(parts[1]);
+          soilPh = double.tryParse(parts[2]);
+          soilNitrogen = int.tryParse(parts[3]);
+          soilPhosphorus = int.tryParse(parts[4]);
+          soilPotassium = int.tryParse(parts[5]);
+          // Update controllers for live display
+          _nitrogenController.text = soilNitrogen?.toString() ?? '';
+          _phosphorusController.text = soilPhosphorus?.toString() ?? '';
+          _potassiumController.text = soilPotassium?.toString() ?? '';
+          _temperatureController.text = soilTemperature?.toString() ?? '';
+          _phController.text = soilPh?.toString() ?? '';
+          _humidityController.text = soilMoisture?.toString() ?? '';
+        });
+      }
     }
   }
 
@@ -498,6 +732,8 @@ class _UserDashboardState extends State<UserDashboard>
                 ],
               ),
             ),
+            // Insert Sensor page between Home and History
+            _buildSensorPage(),
             _buildPredictionHistory(),
             _buildAnalytics(),
           ],
@@ -516,6 +752,10 @@ class _UserDashboardState extends State<UserDashboard>
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.sensors),
+            label: 'Sensor',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.history),
@@ -630,7 +870,7 @@ class _UserDashboardState extends State<UserDashboard>
             if (_isAutomaticMode) ...[
               SizedBox(height: 8),
               Text(
-                'Auto-refreshing every 30 seconds',
+                'Auto-refreshing every 5 seconds',
                 style: TextStyle(
                   color: Colors.green[700],
                   fontSize: 12,
@@ -1176,13 +1416,14 @@ class _UserDashboardState extends State<UserDashboard>
     required String label,
     required IconData icon,
     required String unit,
-    bool enabled = true,
+    bool? enabled,
   }) {
     return Padding(
       padding: EdgeInsets.only(bottom: 16),
       child: TextFormField(
         controller: controller,
-        enabled: enabled,
+        enabled: true,
+        readOnly: _isAutomaticMode,
         keyboardType: TextInputType.number,
         decoration: InputDecoration(
           labelText: label,
@@ -1209,6 +1450,152 @@ class _UserDashboardState extends State<UserDashboard>
           }
           return null;
         },
+      ),
+    );
+  }
+}
+
+class BluetoothClassicSensorPage extends StatelessWidget {
+  final List<BluetoothDevice> devicesList;
+  final List<BluetoothDiscoveryResult> discoveredDevices;
+  final bool isConnected;
+  final bool isConnecting;
+  final BluetoothDevice? selectedDevice;
+  final String status;
+  final bool isDiscovering;
+  final VoidCallback onRefresh;
+  final VoidCallback onScan;
+  final Function(BluetoothDevice, {bool auto}) onConnect;
+  final VoidCallback onDisconnect;
+  final Function(BluetoothDevice) onPair;
+  final Function(BluetoothDevice) onUnpair;
+
+  const BluetoothClassicSensorPage({
+    Key? key,
+    required this.devicesList,
+    required this.discoveredDevices,
+    required this.isConnected,
+    required this.isConnecting,
+    required this.selectedDevice,
+    required this.status,
+    required this.isDiscovering,
+    required this.onRefresh,
+    required this.onScan,
+    required this.onConnect,
+    required this.onDisconnect,
+    required this.onPair,
+    required this.onUnpair,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // Merge paired and discovered devices, prefer paired
+    final Map<String, BluetoothDevice> allDevices = {};
+    for (var d in devicesList) {
+      allDevices[d.address] = d;
+    }
+    for (var r in discoveredDevices) {
+      if (!allDevices.containsKey(r.device.address)) {
+        allDevices[r.device.address] = r.device;
+      }
+    }
+    final mergedDeviceList = allDevices.values.toList();
+
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Bluetooth Soil Sensor (Classic)',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          SizedBox(height: 12),
+          if (!isConnected) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: isConnecting ? null : onRefresh,
+                    icon: Icon(Icons.refresh),
+                    label: Text('Refresh Paired'),
+                  ),
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: isDiscovering ? null : onScan,
+                    icon: Icon(Icons.search),
+                    label: Text(isDiscovering ? 'Scanning...' : 'Scan'),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 12),
+            if (mergedDeviceList.isEmpty)
+              Text('No paired or discovered Bluetooth devices found.'),
+            if (mergedDeviceList.isNotEmpty)
+              ...mergedDeviceList
+                  .where((d) =>
+                      d.isBonded ||
+                      (d.name != null &&
+                          d.name!.trim().isNotEmpty &&
+                          d.name!.trim().toLowerCase() != "unknown"))
+                  .map((d) => ListTile(
+                        title: Text(d.name ?? "Unknown"),
+                        subtitle:
+                            d.isBonded ? Text('Paired') : Text('Unpaired'),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (d.isBonded)
+                              ElevatedButton(
+                                onPressed: isConnecting
+                                    ? null
+                                    : () => onConnect(d, auto: false),
+                                child: Text(isConnecting && selectedDevice == d
+                                    ? 'Connecting...'
+                                    : 'Connect'),
+                              ),
+                            if (!d.isBonded)
+                              ElevatedButton(
+                                onPressed: () => onPair(d),
+                                child: Text('Pair'),
+                              ),
+                            if (d.isBonded) SizedBox(width: 8),
+                            if (d.isBonded)
+                              ElevatedButton(
+                                onPressed: () => onUnpair(d),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red[700],
+                                  foregroundColor: Colors.white,
+                                ),
+                                child: Icon(Icons.delete, color: Colors.white),
+                              ),
+                          ],
+                        ),
+                      )),
+            SizedBox(height: 12),
+            Text('Status: $status', style: TextStyle(fontSize: 16)),
+          ] else ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Connected to ${selectedDevice?.name ?? "Unknown"}',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, color: Colors.green[700])),
+                ElevatedButton(
+                  onPressed: onDisconnect,
+                  child: Text('Disconnect'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red[700],
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 16),
+            Text('Status: $status', style: TextStyle(fontSize: 16)),
+          ]
+        ],
       ),
     );
   }
