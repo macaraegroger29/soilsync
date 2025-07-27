@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'login_screen.dart';
+import 'screens/enhanced_login_screen.dart';
 import 'config.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:permission_handler/permission_handler.dart';
+import 'settings_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -198,7 +199,7 @@ class _ProfilePageState extends State<ProfilePage> {
       if (token == null) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          MaterialPageRoute(builder: (context) => const EnhancedLoginScreen()),
         );
         return;
       }
@@ -239,25 +240,6 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Profile'),
-        backgroundColor: Colors.green[700],
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.edit),
-            onPressed: () {
-              // TODO: Navigate to edit profile page
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Edit profile feature coming soon!'),
-                  backgroundColor: Colors.green[700],
-                ),
-              );
-            },
-          ),
-        ],
-      ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
           : Container(
@@ -273,130 +255,175 @@ class _ProfilePageState extends State<ProfilePage> {
                 padding: EdgeInsets.all(16.0),
                 child: Column(
                   children: [
-                    Card(
-                      elevation: 8,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Padding(
-                        padding: EdgeInsets.all(20),
-                        child: Column(
-                          children: [
-                            Stack(
-                              children: [
-                                Container(
-                                  width: 120,
-                                  height: 120,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: Colors.green[700]!,
-                                      width: 3,
-                                    ),
+                    // Profile picture and name
+                    SizedBox(height: 16),
+                    Center(
+                      child: Column(
+                        children: [
+                          Stack(
+                            children: [
+                              Container(
+                                width: 110,
+                                height: 110,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.green[700]!,
+                                    width: 3,
                                   ),
-                                  child: ClipOval(
-                                    child: _profileImage != null
-                                        ? Image.file(
-                                            _profileImage!,
-                                            fit: BoxFit.cover,
-                                          )
-                                        : Container(
-                                            color: Colors.green[100],
-                                            child: Icon(
-                                              Icons.person,
-                                              size: 80,
-                                              color: Colors.green[700],
-                                            ),
+                                ),
+                                child: ClipOval(
+                                  child: _profileImage != null
+                                      ? Image.file(
+                                          _profileImage!,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : Container(
+                                          color: Colors.green[100],
+                                          child: Icon(
+                                            Icons.person,
+                                            size: 70,
+                                            color: Colors.green[700],
                                           ),
+                                        ),
+                                ),
+                              ),
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.green[700],
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: IconButton(
+                                    icon: Icon(
+                                      Icons.camera_alt,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                    onPressed: _showImagePickerModal,
                                   ),
                                 ),
-                                Positioned(
-                                  bottom: 0,
-                                  right: 0,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.green[700],
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: IconButton(
-                                      icon: Icon(
-                                        Icons.camera_alt,
-                                        color: Colors.white,
-                                        size: 20,
-                                      ),
-                                      onPressed: _showImagePickerModal,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 16),
-                            Text(
-                              _userData?['username'] ?? 'User',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green[700],
                               ),
+                            ],
+                          ),
+                          SizedBox(height: 12),
+                          Text(
+                            _userData?['username'] ?? 'User',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green[700],
                             ),
-                            SizedBox(height: 8),
-                            Text(
-                              _userData?['email'] ?? '',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 16,
-                              ),
-                            ),
-                            SizedBox(height: 24),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                _buildStatCard(
-                                  'Total Predictions',
-                                  _totalPredictions.toString(),
-                                  Icons.analytics,
-                                ),
-                                _buildStatCard(
-                                  'Most Predicted',
-                                  _mostPredictedCrop,
-                                  Icons.grass,
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
-                    SizedBox(height: 16),
+                    SizedBox(height: 24),
+                    // Personal Information Card
                     Card(
-                      elevation: 8,
+                      elevation: 6,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15),
                       ),
                       child: Padding(
-                        padding: EdgeInsets.all(20),
+                        padding:
+                            EdgeInsets.symmetric(vertical: 18, horizontal: 16),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'Account Information',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green[700],
-                              ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Personal Information',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green[700],
+                                  ),
+                                ),
+                                InkWell(
+                                  onTap: () {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                            'Edit profile feature coming soon!'),
+                                        backgroundColor: Colors.green[700],
+                                      ),
+                                    );
+                                  },
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.edit,
+                                          size: 16, color: Colors.green[700]),
+                                      SizedBox(width: 4),
+                                      Text('Edit',
+                                          style: TextStyle(
+                                              color: Colors.green[700],
+                                              fontWeight: FontWeight.w500)),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
                             SizedBox(height: 16),
-                            _buildInfoRow('Member Since',
-                                _formatDate(_userData?['date_joined'] ?? '')),
-                            _buildInfoRow('Role', _userData?['role'] ?? 'User'),
-                            _buildInfoRow('Last Login',
-                                _formatDate(_userData?['last_login'] ?? '')),
+                            _buildInfoTile(Icons.email, 'Email',
+                                _userData?['email'] ?? ''),
+                            _buildInfoTile(Icons.phone, 'Phone',
+                                _userData?['phone'] ?? 'Not set'),
+                            _buildInfoTile(Icons.language, 'Website',
+                                _userData?['website'] ?? 'Not set'),
+                            _buildInfoTile(Icons.location_on, 'Location',
+                                _userData?['location'] ?? 'Not set'),
                           ],
                         ),
                       ),
                     ),
-                    SizedBox(height: 16),
+                    SizedBox(height: 24),
+                    // Utilities Card
+                    Card(
+                      elevation: 6,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: Padding(
+                        padding:
+                            EdgeInsets.symmetric(vertical: 8, horizontal: 0),
+                        child: Column(
+                          children: [
+                            _buildUtilityTile(Icons.settings, 'Settings', () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => SettingsPage()),
+                              );
+                            }),
+                            // Divider(height: 0),
+                            // _buildUtilityTile(
+                            //     Icons.download, 'Downloads', () {}),
+                            // Divider(height: 0),
+                            // _buildUtilityTile(
+                            //     Icons.analytics, 'Usage Analytics', () {}),
+                            Divider(height: 0),
+                            _buildUtilityTile(Icons.logout, 'Log-Out',
+                                () async {
+                              final prefs =
+                                  await SharedPreferences.getInstance();
+                              await prefs.clear();
+                              Navigator.pushAndRemoveUntil(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) =>
+                                        EnhancedLoginScreen()),
+                                (route) => false,
+                              );
+                            }, color: Colors.red[700]),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -480,5 +507,44 @@ class _ProfilePageState extends State<ProfilePage> {
       'December'
     ];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
+  }
+
+  Widget _buildInfoTile(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.green[700], size: 20),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Colors.grey[700],
+                fontSize: 15,
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              color: Colors.green[900],
+              fontWeight: FontWeight.w500,
+              fontSize: 15,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUtilityTile(IconData icon, String label, VoidCallback onTap,
+      {Color? color}) {
+    return ListTile(
+      leading: Icon(icon, color: color ?? Colors.green[700]),
+      title: Text(label, style: TextStyle(fontWeight: FontWeight.w500)),
+      trailing: Icon(Icons.chevron_right, color: Colors.grey[400]),
+      onTap: onTap,
+    );
   }
 }

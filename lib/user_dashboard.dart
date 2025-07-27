@@ -4,7 +4,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'login_screen.dart';
+import 'screens/enhanced_login_screen.dart';
 import 'config.dart';
 import 'profile_page.dart';
 import 'settings_page.dart';
@@ -90,6 +90,12 @@ class _UserDashboardState extends State<UserDashboard>
     });
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _getSensorData();
+  }
+
   // Remove _autoDetectEsp32AndStartTimer and findEsp32Ip methods
 
   @override
@@ -145,7 +151,7 @@ class _UserDashboardState extends State<UserDashboard>
       if (token == null) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          MaterialPageRoute(builder: (context) => const EnhancedLoginScreen()),
         );
         return;
       }
@@ -200,7 +206,7 @@ class _UserDashboardState extends State<UserDashboard>
       if (token == null) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          MaterialPageRoute(builder: (context) => const EnhancedLoginScreen()),
         );
         return;
       }
@@ -280,7 +286,7 @@ class _UserDashboardState extends State<UserDashboard>
     await prefs.clear();
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
+      MaterialPageRoute(builder: (context) => const EnhancedLoginScreen()),
     );
   }
 
@@ -298,10 +304,12 @@ class _UserDashboardState extends State<UserDashboard>
         });
         return;
       }
+      // Add debug print before weather API call
+      print('Calling weather API for rainfall...');
       // Get real rainfall data from weather API
       final weatherData =
           await _weatherService.getCurrentWeather(forceRefresh: true);
-      print('Dashboard received rainfall data: $weatherData');
+      print('Weather data fetched: $weatherData');
       setState(() {
         if (soilNitrogen != null &&
             soilPhosphorus != null &&
@@ -335,13 +343,20 @@ class _UserDashboardState extends State<UserDashboard>
           soilPhosphorus = 0;
           soilPotassium = 0;
         }
-        _rainfallController.text =
-            (weatherData['rainfall'] as double).toStringAsFixed(2);
+        // Set rainfall from API robustly
+        final rainfall = weatherData['rainfall'];
+        print('Rainfall from API: $rainfall');
+        if (rainfall != null && rainfall is num) {
+          _rainfallController.text = rainfall.toStringAsFixed(2);
+        } else {
+          _rainfallController.text = '0.00';
+        }
       });
       if (_isAutomaticMode) {
         await _predictSoil();
       }
-    } finally {
+    } catch (e) {
+      print('Error fetching weather data: $e');
       setState(() {
         _isLoading = false;
       });
@@ -643,71 +658,68 @@ class _UserDashboardState extends State<UserDashboard>
     }
   }
 
+  // Helper method to get crop icon path
+  String _getCropIconPath(String cropName) {
+    // Convert crop name to lowercase and handle special cases
+    final normalizedName = cropName.toLowerCase().trim();
+
+    // Map crop names to their corresponding asset file names
+    final cropIconMap = {
+      'apple': 'assets/icons/apple.png',
+      'banana': 'assets/icons/banana.png',
+      'blackgram': 'assets/icons/black gram.png',
+      'black gram': 'assets/icons/black gram.png',
+      'chickpea': 'assets/icons/chickpea.png',
+      'coconut': 'assets/icons/coconut.png',
+      'coffee': 'assets/icons/coffee.png',
+      'corn': 'assets/icons/corn.png',
+      'maize': 'assets/icons/corn.png', // Alternative name for corn
+      'cotton': 'assets/icons/cotton.png',
+      'grapes': 'assets/icons/grapes.png',
+      'jute': 'assets/icons/jute.png',
+      'kidneybeans': 'assets/icons/kidneybeans.png',
+      'kidney beans': 'assets/icons/kidneybeans.png',
+      'lentil': 'assets/icons/lentil.png',
+      'mango': 'assets/icons/mango.png',
+      'mothbeans': 'assets/icons/mothbeans.png',
+      'moth beans': 'assets/icons/mothbeans.png',
+      'mungbean': 'assets/icons/mung bean.png',
+      'mung bean': 'assets/icons/mung bean.png',
+      'muskmelon': 'assets/icons/muskmelon.png',
+      'orange': 'assets/icons/orange.png',
+      'papaya': 'assets/icons/papaya.png',
+      'pigeonpeas': 'assets/icons/pigeonpeas.png',
+      'pigeon peas': 'assets/icons/pigeonpeas.png',
+      'pomegranate': 'assets/icons/pomegranate.png',
+      'rice': 'assets/icons/rice.png',
+      'watermelon': 'assets/icons/watermelon.png',
+    };
+
+    return cropIconMap[normalizedName] ??
+        'assets/icons/rice.png'; // Default to rice icon
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: true,
-        title: null,
-        backgroundColor: Colors.green[700],
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      drawer: Drawer(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        automaticallyImplyLeading: false, // Remove hamburger/back button
+        title: Row(
           children: [
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.green[700],
+            Text(
+              'SoilSync',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+                color: Colors.white,
+                letterSpacing: 1.2,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Text(
-                    'SoilSync',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            ListTile(
-              leading: Icon(Icons.person, color: Colors.green[700]),
-              title: Text('Profile'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => ProfilePage()),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.settings, color: Colors.green[700]),
-              title: Text('Settings'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => SettingsPage()),
-                ).then((_) => _getSensorData());
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.logout, color: Colors.green[700]),
-              title: Text('Logout'),
-              onTap: () async {
-                Navigator.pop(context);
-                await _logout();
-              },
             ),
           ],
         ),
+        backgroundColor: Colors.green[700],
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -728,14 +740,33 @@ class _UserDashboardState extends State<UserDashboard>
                 children: [
                   _buildPredictionForm(),
                   SizedBox(height: 16),
-                  _buildPredictionResult(),
+                  GestureDetector(
+                    onTap: _predictionResult != null
+                        ? () {
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.vertical(
+                                    top: Radius.circular(24)),
+                              ),
+                              builder: (context) => Padding(
+                                padding: const EdgeInsets.only(
+                                    top: 16, left: 12, right: 12, bottom: 24),
+                                child: _buildAnalytics(),
+                              ),
+                            );
+                          }
+                        : null,
+                    child: _buildPredictionResult(),
+                  ),
                 ],
               ),
             ),
             // Insert Sensor page between Home and History
             _buildSensorPage(),
             _buildPredictionHistory(),
-            _buildAnalytics(),
+            ProfilePage(),
           ],
         ),
       ),
@@ -762,8 +793,8 @@ class _UserDashboardState extends State<UserDashboard>
             label: 'History',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.analytics),
-            label: 'Analytics',
+            icon: Icon(Icons.person),
+            label: 'Profile',
           ),
         ],
       ),
@@ -820,26 +851,28 @@ class _UserDashboardState extends State<UserDashboard>
 
   Widget _buildPredictionForm() {
     return Card(
-      elevation: 8,
+      color: Colors.white,
+      elevation: 6,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Padding(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   _isAutomaticMode ? 'Sensor Input Mode' : 'Manual Input Mode',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: Colors.green[700],
                   ),
                 ),
+                const SizedBox(width: 12),
                 Switch(
                   value: _isAutomaticMode,
                   onChanged: (value) {
@@ -857,118 +890,249 @@ class _UserDashboardState extends State<UserDashboard>
                 ),
               ],
             ),
-            SizedBox(height: 8),
-            Text(
-              _isAutomaticMode
-                  ? 'Reading soil parameters from sensors...'
-                  : 'Enter soil parameters manually',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 14,
-              ),
-            ),
-            if (_isAutomaticMode) ...[
-              SizedBox(height: 8),
-              Text(
-                'Auto-refreshing every 5 seconds',
-                style: TextStyle(
-                  color: Colors.green[700],
-                  fontSize: 12,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ],
-            SizedBox(height: 20),
+            const SizedBox(height: 18),
             Form(
               key: _formKey,
-              child: Column(
-                children: [
-                  _buildInputField(
-                    controller: _nitrogenController,
-                    label: 'Nitrogen (N)',
-                    icon: Icons.science,
-                    unit: 'mg/kg',
-                  ),
-                  _buildInputField(
-                    controller: _phosphorusController,
-                    label: 'Phosphorus (P)',
-                    icon: Icons.science,
-                    unit: 'mg/kg',
-                  ),
-                  _buildInputField(
-                    controller: _potassiumController,
-                    label: 'Potassium (K)',
-                    icon: Icons.science,
-                    unit: 'mg/kg',
-                  ),
-                  _buildInputField(
-                    controller: _temperatureController,
-                    label: 'Temperature',
-                    icon: Icons.thermostat,
-                    unit: '°C',
-                  ),
-                  _buildInputField(
-                    controller: _humidityController,
-                    label: 'Humidity',
-                    icon: Icons.water_drop,
-                    unit: '%',
-                  ),
-                  _buildInputField(
-                    controller: _phController,
-                    label: 'pH',
-                    icon: Icons.science,
-                    unit: '',
-                  ),
-                  _buildInputField(
-                    controller: _rainfallController,
-                    label: 'Rainfall',
-                    icon: Icons.water,
-                    unit: 'mm',
-                  ),
-                  SizedBox(height: 20),
-                  if (!_isAutomaticMode)
-                    ElevatedButton(
-                      onPressed: _isLoading ? null : _predictSoil,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green[700],
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 32,
-                          vertical: 16,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                      child: _isLoading
-                          ? SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(Colors.white),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final double gridWidth = constraints.maxWidth;
+                    return Column(
+                      children: [
+                        Table(
+                          columnWidths: const {
+                            0: FlexColumnWidth(1),
+                            1: FlexColumnWidth(1),
+                          },
+                          defaultVerticalAlignment:
+                              TableCellVerticalAlignment.middle,
+                          children: [
+                            TableRow(children: [
+                              _buildSquareInputField(
+                                controller: _nitrogenController,
+                                label: 'Nitrogen (N)',
+                                icon: Icons.science,
+                                unit: 'mg/kg',
                               ),
-                            )
-                          : Text(
-                              'Predict Crop',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
+                              _buildSquareInputField(
+                                controller: _phosphorusController,
+                                label: 'Phosphorus (P)',
+                                icon: Icons.science,
+                                unit: 'mg/kg',
                               ),
-                            ),
-                    ),
-                  if (_isAutomaticMode)
-                    Text(
-                      'Predictions are automatic in sensor mode',
-                      style: TextStyle(
-                        color: Colors.green[700],
-                        fontSize: 14,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                ],
+                            ]),
+                            TableRow(children: [
+                              _buildSquareInputField(
+                                controller: _potassiumController,
+                                label: 'Potassium (K)',
+                                icon: Icons.science,
+                                unit: 'mg/kg',
+                              ),
+                              _buildSquareInputField(
+                                controller: _phController,
+                                label: 'pH',
+                                icon: Icons.science,
+                                unit: '',
+                              ),
+                            ]),
+                            TableRow(children: [
+                              _buildSquareInputField(
+                                controller: _temperatureController,
+                                label: 'Temperature',
+                                icon: Icons.thermostat,
+                                unit: '°C',
+                              ),
+                              _buildSquareInputField(
+                                controller: _humidityController,
+                                label: 'Humidity',
+                                icon: Icons.water_drop,
+                                unit: '%',
+                              ),
+                            ]),
+                          ],
+                        ),
+                        const SizedBox(height: 0),
+                        SizedBox(
+                          width: gridWidth,
+                          child: _buildFullWidthInputField(
+                            controller: _rainfallController,
+                            label: 'Rainfall',
+                            icon: Icons.water,
+                            unit: 'mm',
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // New: Square input field builder for Wrap
+  Widget _buildSquareInputField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    required String unit,
+  }) {
+    final double size = (MediaQuery.of(context).size.width - 64) / 2;
+    final bool isReadOnly = _isAutomaticMode && label != 'Rainfall';
+    final String value = controller.text;
+
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                label,
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 8),
+              if (isReadOnly)
+                Column(
+                  children: [
+                    Text(
+                      value.isEmpty ? '--' : value,
+                      style:
+                          TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                    if (unit.isNotEmpty)
+                      Text(
+                        unit,
+                        style: TextStyle(fontSize: 13),
+                        textAlign: TextAlign.center,
+                      ),
+                  ],
+                )
+              else
+                Column(
+                  children: [
+                    TextFormField(
+                      controller: controller,
+                      textAlign: TextAlign.center,
+                      keyboardType: TextInputType.number,
+                      style:
+                          TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        contentPadding:
+                            EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                        border: InputBorder.none,
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) return '';
+                        if (double.tryParse(value) == null) return '';
+                        return null;
+                      },
+                    ),
+                    if (unit.isNotEmpty)
+                      Text(
+                        unit,
+                        style: TextStyle(fontSize: 13),
+                        textAlign: TextAlign.center,
+                      ),
+                  ],
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Add this new builder for the full-width rainfall card
+  Widget _buildFullWidthInputField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    required String unit,
+  }) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              label,
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 8),
+            Builder(
+              builder: (context) {
+                final bool isReadOnly = _isAutomaticMode;
+                final String value = controller.text;
+                if (isReadOnly) {
+                  return Column(
+                    children: [
+                      Text(
+                        value.isEmpty ? '--' : value,
+                        style: TextStyle(
+                            fontSize: 26, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                      if (unit.isNotEmpty)
+                        Text(
+                          unit,
+                          style: TextStyle(fontSize: 13),
+                          textAlign: TextAlign.center,
+                        ),
+                    ],
+                  );
+                } else {
+                  return Column(
+                    children: [
+                      TextFormField(
+                        controller: controller,
+                        textAlign: TextAlign.center,
+                        keyboardType: TextInputType.number,
+                        style: TextStyle(
+                            fontSize: 26, fontWeight: FontWeight.bold),
+                        decoration: InputDecoration(
+                          isDense: true,
+                          contentPadding:
+                              EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                          border: InputBorder.none,
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) return '';
+                          if (double.tryParse(value) == null) return '';
+                          return null;
+                        },
+                      ),
+                      if (unit.isNotEmpty)
+                        Text(
+                          unit,
+                          style: TextStyle(fontSize: 13),
+                          textAlign: TextAlign.center,
+                        ),
+                    ],
+                  );
+                }
+              },
             ),
           ],
         ),
@@ -1017,7 +1181,35 @@ class _UserDashboardState extends State<UserDashboard>
               ),
               child: Row(
                 children: [
-                  Icon(Icons.eco, color: Colors.green[700], size: 32),
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 4,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.asset(
+                        _getCropIconPath(_predictionResult!),
+                        width: 48,
+                        height: 48,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          // Fallback to eco icon if image fails to load
+                          return Icon(Icons.eco,
+                              color: Colors.green[700], size: 32);
+                        },
+                      ),
+                    ),
+                  ),
                   SizedBox(width: 16),
                   Expanded(
                     child: Column(
@@ -1089,7 +1281,15 @@ class _UserDashboardState extends State<UserDashboard>
           child: ExpansionTile(
             leading: CircleAvatar(
               backgroundColor: Colors.green[100],
-              child: Icon(Icons.history, color: Colors.green[700]),
+              child: Image.asset(
+                _getCropIconPath(prediction['prediction'] ?? ''),
+                width: 28,
+                height: 28,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return Icon(Icons.eco, color: Colors.green[700]);
+                },
+              ),
             ),
             title: Text(
               prediction['prediction'] ?? 'Unknown',
@@ -1533,46 +1733,41 @@ class BluetoothClassicSensorPage extends StatelessWidget {
             if (mergedDeviceList.isEmpty)
               Text('No paired or discovered Bluetooth devices found.'),
             if (mergedDeviceList.isNotEmpty)
-              ...mergedDeviceList
-                  .where((d) =>
-                      d.isBonded ||
-                      (d.name != null &&
-                          d.name!.trim().isNotEmpty &&
-                          d.name!.trim().toLowerCase() != "unknown"))
-                  .map((d) => ListTile(
-                        title: Text(d.name ?? "Unknown"),
-                        subtitle:
-                            d.isBonded ? Text('Paired') : Text('Unpaired'),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (d.isBonded)
-                              ElevatedButton(
-                                onPressed: isConnecting
-                                    ? null
-                                    : () => onConnect(d, auto: false),
-                                child: Text(isConnecting && selectedDevice == d
-                                    ? 'Connecting...'
-                                    : 'Connect'),
-                              ),
-                            if (!d.isBonded)
-                              ElevatedButton(
-                                onPressed: () => onPair(d),
-                                child: Text('Pair'),
-                              ),
-                            if (d.isBonded) SizedBox(width: 8),
-                            if (d.isBonded)
-                              ElevatedButton(
-                                onPressed: () => onUnpair(d),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red[700],
-                                  foregroundColor: Colors.white,
-                                ),
-                                child: Icon(Icons.delete, color: Colors.white),
-                              ),
-                          ],
-                        ),
-                      )),
+              ...mergedDeviceList.map((d) => ListTile(
+                    title: Text(d.name?.isNotEmpty == true
+                        ? d.name!
+                        : "Unknown Device"),
+                    subtitle: d.isBonded ? Text('Paired') : Text('Unpaired'),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (d.isBonded)
+                          ElevatedButton(
+                            onPressed: isConnecting
+                                ? null
+                                : () => onConnect(d, auto: false),
+                            child: Text(isConnecting && selectedDevice == d
+                                ? 'Connecting...'
+                                : 'Connect'),
+                          ),
+                        if (!d.isBonded)
+                          ElevatedButton(
+                            onPressed: () => onPair(d),
+                            child: Text('Pair'),
+                          ),
+                        if (d.isBonded) SizedBox(width: 8),
+                        if (d.isBonded)
+                          ElevatedButton(
+                            onPressed: () => onUnpair(d),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red[700],
+                              foregroundColor: Colors.white,
+                            ),
+                            child: Icon(Icons.delete, color: Colors.white),
+                          ),
+                      ],
+                    ),
+                  )),
             SizedBox(height: 12),
             Text('Status: $status', style: TextStyle(fontSize: 16)),
           ] else ...[
