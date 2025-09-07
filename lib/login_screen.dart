@@ -225,7 +225,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _login() async {
     print('Starting login process...');
-    print('Username: ${usernameController.text}');
+    print('Username or Email: ${usernameController.text}');
     // Don't log actual passwords in production
     print('Password length: ${passwordController.text.length}');
 
@@ -253,10 +253,11 @@ class _LoginScreenState extends State<LoginScreen> {
       // Trim whitespace from username and password
       final String username = usernameController.text.trim();
       final String password = passwordController.text.trim();
-      print('Trimmed Username: $username'); // Log trimmed username
+      print(
+          'Trimmed Username or Email: $username'); // Log trimmed username or email
 
       final requestBody = {
-        'username': username, // Use trimmed username
+        'username_or_email': username, // Use trimmed username or email
         'password': password, // Use trimmed password
       };
       print(
@@ -303,7 +304,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       } else {
         setState(() {
-          errorMessage = 'Invalid username or password';
+          errorMessage = 'Invalid username/email or password';
         });
         _showError(errorMessage);
       }
@@ -403,7 +404,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 TextFormField(
                                   controller: usernameController,
                                   decoration: InputDecoration(
-                                    hintText: 'Username',
+                                    hintText: 'Username or Email',
                                     prefixIcon: Icon(Icons.person),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(16),
@@ -414,7 +415,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
-                                      return 'Please enter your username';
+                                      return 'Please enter your username or email';
                                     }
                                     return null;
                                   },

@@ -316,16 +316,16 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
 
                                   SizedBox(height: 32),
 
-                                  // Username Field
+                                  // Username or Email Field
                                   _buildTextField(
                                     controller: _emailController,
-                                    label: 'Username',
-                                    hint: 'Enter your username',
+                                    label: 'Username or Email',
+                                    hint: 'Enter your username or email',
                                     icon: Icons.person_outlined,
                                     keyboardType: TextInputType.text,
                                     validator: (value) {
                                       if (value == null || value.isEmpty) {
-                                        return 'Please enter your username';
+                                        return 'Please enter your username or email';
                                       }
                                       return null;
                                     },
@@ -640,7 +640,7 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
 
   Future<void> _handleLogin() async {
     print('Starting login process...');
-    print('Username: ${_emailController.text}');
+    print('Username or Email: ${_emailController.text}');
     print('Password length: ${_passwordController.text.length}');
 
     if (!_formKey.currentState!.validate()) {
@@ -666,10 +666,10 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
 
       final String username = _emailController.text.trim();
       final String password = _passwordController.text.trim();
-      print('Trimmed Username: $username');
+      print('Trimmed Username or Email: $username');
 
       final requestBody = {
-        'username': username,
+        'username_or_email': username,
         'password': password,
       };
       print(
@@ -715,7 +715,7 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
         );
       } else {
         setState(() {
-          errorMessage = 'Invalid username or password';
+          errorMessage = 'Invalid username/email or password';
         });
         _showError(errorMessage);
       }

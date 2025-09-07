@@ -292,6 +292,12 @@ class _UserDashboardState extends State<UserDashboard>
 
   Future<void> _getSensorData() async {
     if (_isPredicting) return;
+    if (!_isAutomaticMode) {
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
     setState(() {
       _isLoading = true;
     });
@@ -317,12 +323,14 @@ class _UserDashboardState extends State<UserDashboard>
             soilTemperature != null &&
             soilMoisture != null &&
             soilPh != null) {
-          _nitrogenController.text = soilNitrogen.toString();
-          _phosphorusController.text = soilPhosphorus.toString();
-          _potassiumController.text = soilPotassium.toString();
-          _temperatureController.text = soilTemperature.toString();
-          _humidityController.text = soilMoisture.toString();
-          _phController.text = soilPh.toString();
+          if (_isAutomaticMode) {
+            _nitrogenController.text = soilNitrogen.toString();
+            _phosphorusController.text = soilPhosphorus.toString();
+            _potassiumController.text = soilPotassium.toString();
+            _temperatureController.text = soilTemperature.toString();
+            _humidityController.text = soilMoisture.toString();
+            _phController.text = soilPh.toString();
+          }
           soilMoisture = soilMoisture;
           soilTemperature = soilTemperature;
           soilPh = soilPh;
@@ -330,12 +338,14 @@ class _UserDashboardState extends State<UserDashboard>
           soilPhosphorus = soilPhosphorus;
           soilPotassium = soilPotassium;
         } else {
-          _nitrogenController.text = '0';
-          _phosphorusController.text = '0';
-          _potassiumController.text = '0';
-          _temperatureController.text = '0';
-          _humidityController.text = '0';
-          _phController.text = '0';
+          if (_isAutomaticMode) {
+            _nitrogenController.text = '0';
+            _phosphorusController.text = '0';
+            _potassiumController.text = '0';
+            _temperatureController.text = '0';
+            _humidityController.text = '0';
+            _phController.text = '0';
+          }
           soilMoisture = 0;
           soilTemperature = 0;
           soilPh = 0;
@@ -347,9 +357,13 @@ class _UserDashboardState extends State<UserDashboard>
         final rainfall = weatherData['rainfall'];
         print('Rainfall from API: $rainfall');
         if (rainfall != null && rainfall is num) {
-          _rainfallController.text = rainfall.toStringAsFixed(2);
+          if (_isAutomaticMode) {
+            _rainfallController.text = rainfall.toStringAsFixed(2);
+          }
         } else {
-          _rainfallController.text = '0.00';
+          if (_isAutomaticMode) {
+            _rainfallController.text = '0.00';
+          }
         }
       });
       if (_isAutomaticMode) {
@@ -502,12 +516,14 @@ class _UserDashboardState extends State<UserDashboard>
           soilPhosphorus = (data['phosphorus'] as num?)?.toInt();
           soilPotassium = (data['potassium'] as num?)?.toInt();
           esp32Status = 'Connected';
-          _nitrogenController.text = soilNitrogen?.toString() ?? '';
-          _phosphorusController.text = soilPhosphorus?.toString() ?? '';
-          _potassiumController.text = soilPotassium?.toString() ?? '';
-          _temperatureController.text = soilTemperature?.toString() ?? '';
-          _phController.text = soilPh?.toString() ?? '';
-          _humidityController.text = soilMoisture?.toString() ?? '';
+          if (_isAutomaticMode) {
+            _nitrogenController.text = soilNitrogen?.toString() ?? '';
+            _phosphorusController.text = soilPhosphorus?.toString() ?? '';
+            _potassiumController.text = soilPotassium?.toString() ?? '';
+            _temperatureController.text = soilTemperature?.toString() ?? '';
+            _phController.text = soilPh?.toString() ?? '';
+            _humidityController.text = soilMoisture?.toString() ?? '';
+          }
         });
         print(
             'Set state: $soilMoisture, $soilTemperature, $soilPh, $soilNitrogen, $soilPhosphorus, $soilPotassium');
@@ -647,12 +663,14 @@ class _UserDashboardState extends State<UserDashboard>
           soilPhosphorus = int.tryParse(parts[4]);
           soilPotassium = int.tryParse(parts[5]);
           // Update controllers for live display
-          _nitrogenController.text = soilNitrogen?.toString() ?? '';
-          _phosphorusController.text = soilPhosphorus?.toString() ?? '';
-          _potassiumController.text = soilPotassium?.toString() ?? '';
-          _temperatureController.text = soilTemperature?.toString() ?? '';
-          _phController.text = soilPh?.toString() ?? '';
-          _humidityController.text = soilMoisture?.toString() ?? '';
+          if (_isAutomaticMode) {
+            _nitrogenController.text = soilNitrogen?.toString() ?? '';
+            _phosphorusController.text = soilPhosphorus?.toString() ?? '';
+            _potassiumController.text = soilPotassium?.toString() ?? '';
+            _temperatureController.text = soilTemperature?.toString() ?? '';
+            _phController.text = soilPh?.toString() ?? '';
+            _humidityController.text = soilMoisture?.toString() ?? '';
+          }
         });
       }
     }
@@ -962,6 +980,33 @@ class _UserDashboardState extends State<UserDashboard>
                             unit: 'mm',
                           ),
                         ),
+                        const SizedBox(height: 12),
+                        if (!_isAutomaticMode)
+                          SizedBox(
+                            width: gridWidth,
+                            child: ElevatedButton.icon(
+                              onPressed: _isPredicting ? null : _predictSoil,
+                              icon: _isPredicting
+                                  ? SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                                Colors.white),
+                                      ),
+                                    )
+                                  : Icon(Icons.analytics),
+                              label: Text(
+                                  _isPredicting ? 'Predicting...' : 'Predict'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green[700],
+                                foregroundColor: Colors.white,
+                                padding: EdgeInsets.symmetric(vertical: 12),
+                              ),
+                            ),
+                          ),
                       ],
                     );
                   },

@@ -5,6 +5,7 @@ from rest_framework import status
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.views import APIView
 from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth import authenticate
 import logging
 import requests
 import json
@@ -18,6 +19,7 @@ from django.conf import settings
 from django.core.paginator import Paginator
 from rest_framework.renderers import JSONRenderer
 from django.http import JsonResponse
+from rest_framework import serializers
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -39,55 +41,102 @@ except Exception as e:
         model = None
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    username_field = 'username_or_email'
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Replace the username field with username_or_email
+        if 'username' in self.fields:
+            self.fields['username_or_email'] = self.fields.pop('username')
+            self.fields['username_or_email'].label = 'Username or Email'
+    
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
         token['role'] = user.role
         return token
 
-class CustomTokenObtainPairView(TokenObtainPairView):
-    serializer_class = CustomTokenObtainPairSerializer
+class CustomTokenObtainPairView(APIView):
+    permission_classes = []
 
     def post(self, request, *args, **kwargs):
         logger.info("=== Login Attempt ===")
-        logger.info(f"Username: {request.data.get('username')}")
+        logger.info(f"Username or Email: {request.data.get('username_or_email')}")
         logger.info(f"Request data: {request.data}")
         logger.info(f"Request headers: {request.headers}")
         logger.info(f"Request method: {request.method}")
         logger.info(f"Request path: {request.path}")
 
         try:
-            response = super().post(request, *args, **kwargs)
-            logger.info(f"Login response status: {response.status_code}")
-            logger.info(f"Login response data: {response.data}")
+            # Handle username_or_email field
+            username_or_email = request.data.get('username_or_email')
+            password = request.data.get('password')
+            
+            if not username_or_email or not password:
+                return Response(
+                    {"error": "Must include 'username_or_email' and 'password'"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Try to find user by username first
+            user = User.objects.filter(username=username_or_email).first()
+            if not user:
+                # If not found by username, try email
+                user = User.objects.filter(email=username_or_email).first()
+                if not user:
+                    return Response(
+                        {"error": "No user found with this username or email"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            
+            # Authenticate the user
+            authenticated_user = authenticate(username=user.username, password=password)
+            if not authenticated_user:
+                return Response(
+                    {"error": "Invalid password"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            if not authenticated_user.is_active:
+                return Response(
+                    {"error": "User account is disabled"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Generate tokens
+            from rest_framework_simplejwt.tokens import RefreshToken
+            refresh = RefreshToken.for_user(authenticated_user)
+            
+            # Add role to token
+            refresh['role'] = authenticated_user.role
+            
+            logger.info(f"User found: {authenticated_user.username}")
+            logger.info(f"User is superuser: {authenticated_user.is_superuser}")
+            logger.info(f"User role: {authenticated_user.role}")
 
-            if response.status_code == 200:
-                try:
-                    user = User.objects.get(username=request.data["username"])
-                    logger.info(f"User found: {user.username}")
-                    logger.info(f"User is superuser: {user.is_superuser}")
-                    logger.info(f"User role: {user.role}")
-
-                    # Always set role to admin for superusers
-                    if user.is_superuser:
-                        response.data["role"] = "admin"
-                        logger.info("Setting role to admin for superuser")
-                    else:
-                        response.data["role"] = getattr(user, 'role', 'user')
-                        logger.info(f"Setting role to {response.data['role']}")
-
-                    # Ensure the role is included in the response
-                    if 'role' not in response.data:
-                        response.data['role'] = 'user'
-                        logger.info("No role found, defaulting to 'user'")
-                except User.DoesNotExist:
-                    logger.error(f"User not found: {request.data['username']}")
-                    return Response({"error": "User not found"}, status=status.HTTP_400_BAD_REQUEST)
+            # Always set role to admin for superusers
+            if authenticated_user.is_superuser:
+                role = "admin"
             else:
-                logger.error(f"Login failed with status {response.status_code}: {response.data}")
-            return response
+                role = getattr(authenticated_user, 'role', 'user')
+            
+            response_data = {
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
+                'role': role
+            }
+            
+            logger.info(f"Login successful for user: {authenticated_user.username}")
+            return Response(response_data, status=status.HTTP_200_OK)
+            
         except Exception as e:
             logger.error(f"Unexpected error during login: {str(e)}")
+            # Provide more specific error messages
+            if "more than one" in str(e):
+                return Response(
+                    {"error": "Multiple accounts found with this email. Please contact support."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             return Response(
                 {"error": "An unexpected error occurred"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR

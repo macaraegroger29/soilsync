@@ -143,6 +143,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Custom user model
 AUTH_USER_MODEL = 'api.CustomUser'
 
+# Custom authentication backends
+AUTHENTICATION_BACKENDS = [
+    'api.authentication.UsernameOrEmailBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
 # JWT settings
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
