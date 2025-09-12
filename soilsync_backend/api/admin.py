@@ -39,3 +39,7 @@ class DatasetAdmin(admin.ModelAdmin):
     list_filter = ('label', 'created_at')
     search_fields = ('label',)
     ordering = ('-created_at',)
+
+admin.site.site_header = "SoilSync Administration"
+admin.site.site_title = "SoilSync Administration"
+admin.site.index_title = "Welcome to SoilSync Administration"

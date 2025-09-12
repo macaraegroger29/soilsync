@@ -34,6 +34,7 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -237,4 +238,30 @@ LOGGING = {
             'propagate': True,
         },
     },
+}
+
+# Jazzmin configuration: SoilSync branding and layout tweaks
+JAZZMIN_SETTINGS = {
+    "site_title": "SoilSync Administration",
+    "site_header": "SoilSync Administration",
+    "site_brand": "SoilSync",
+    "welcome_sign": "Welcome to SoilSync Administration",
+    "copyright": "SoilSync",
+    "show_ui_builder": False,
+    "hide_apps": [],
+    "hide_models": [],
+}
+
+JAZZMIN_UI_TWEAKS = {
+    "theme": "darkly",
+    "dark_mode_theme": None,
+    "brand_small_text": False,
+    "brand_colour": "navbar-dark",
+    "accent": "accent-green",
+    "navbar": "navbar-dark",
+    "no_navbar_border": False,
+    "sidebar_fixed": True,
+    "footer_fixed": False,
+    "sidebar": "sidebar-dark-success",
+    "actions_sticky_top": True,
 }
