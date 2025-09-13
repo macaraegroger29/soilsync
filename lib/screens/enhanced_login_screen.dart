@@ -131,11 +131,6 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
     _serverIpController.text = prefs.getString('server_ip') ?? '';
   }
 
-  Future<void> _saveIps() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('server_ip', _serverIpController.text.trim());
-  }
-
   Future<void> _showIpSettings() async {
     final TextEditingController serverIpController =
         TextEditingController(text: _serverIpController.text);
@@ -213,14 +208,9 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
         children: [
           Container(
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF2E7D32),
-                  Color(0xFF4CAF50),
-                  Color(0xFF8BC34A),
-                ],
+              image: DecorationImage(
+                image: AssetImage('assets/images/farm_background.jpg'),
+                fit: BoxFit.cover,
               ),
             ),
             child: SafeArea(
@@ -278,7 +268,7 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
                         // Login Card
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: Colors.white.withOpacity(0.7),
                             borderRadius: BorderRadius.circular(24),
                             boxShadow: [
                               BoxShadow(
@@ -295,27 +285,6 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  Text(
-                                    'Welcome Back!',
-                                    style: TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF2E7D32),
-                                    ),
-                                  ),
-
-                                  SizedBox(height: 8),
-
-                                  Text(
-                                    'Sign in to manage your farm',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.grey[600],
-                                    ),
-                                  ),
-
-                                  SizedBox(height: 32),
-
                                   // Username or Email Field
                                   _buildTextField(
                                     controller: _emailController,
@@ -402,7 +371,8 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
                                         child: Text(
                                           'Forgot?',
                                           style: TextStyle(
-                                            color: Color(0xFF2E7D32),
+                                            color:
+                                                Color.fromARGB(255, 26, 84, 29),
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
@@ -452,53 +422,6 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
 
                                   SizedBox(height: 24),
 
-                                  // Divider
-                                  Row(
-                                    children: [
-                                      Expanded(child: Divider()),
-                                      Padding(
-                                        padding: EdgeInsets.symmetric(
-                                            horizontal: 16),
-                                        child: Text(
-                                          'OR',
-                                          style: TextStyle(
-                                            color: Colors.grey[600],
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ),
-                                      Expanded(child: Divider()),
-                                    ],
-                                  ),
-
-                                  SizedBox(height: 24),
-
-                                  // Social Login
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      _buildSocialButton(
-                                        icon: Icons.g_mobiledata,
-                                        color: Colors.red,
-                                        onPressed: () => _handleGoogleLogin(),
-                                      ),
-                                      SizedBox(width: 16),
-                                      _buildSocialButton(
-                                        icon: Icons.facebook,
-                                        color: Colors.blue[800]!,
-                                        onPressed: () => _handleFacebookLogin(),
-                                      ),
-                                      SizedBox(width: 16),
-                                      _buildSocialButton(
-                                        icon: Icons.apple,
-                                        color: Colors.black,
-                                        onPressed: () => _handleAppleLogin(),
-                                      ),
-                                    ],
-                                  ),
-
-                                  SizedBox(height: 24),
-
                                   // Sign Up Link
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
@@ -522,7 +445,8 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
                                         child: Text(
                                           'Sign Up',
                                           style: TextStyle(
-                                            color: Color(0xFF2E7D32),
+                                            color:
+                                                Color.fromARGB(255, 26, 84, 29),
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
@@ -543,7 +467,7 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
           ),
           // Floating server settings button (top right)
           Positioned(
-            top: 16,
+            top: 48,
             right: 16,
             child: Material(
               color: Colors.transparent,
@@ -551,9 +475,9 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
                 borderRadius: BorderRadius.circular(24),
                 onTap: _showIpSettings,
                 child: Container(
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.85),
+                  padding: const EdgeInsets.all(8),
+                  decoration: const BoxDecoration(
+                    color: Color.fromRGBO(255, 255, 255, 0.85),
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
@@ -563,8 +487,8 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
                       ),
                     ],
                   ),
-                  child:
-                      Icon(Icons.settings, color: Color(0xFF2E7D32), size: 28),
+                  child: const Icon(Icons.settings,
+                      color: Color(0xFF2E7D32), size: 28),
                 ),
               ),
             ),
@@ -606,35 +530,9 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
           borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2),
         ),
         filled: true,
-        fillColor: Colors.grey[50],
+        fillColor: Colors.grey[50]!.withOpacity(0.9),
       ),
       validator: validator,
-    );
-  }
-
-  Widget _buildSocialButton({
-    required IconData icon,
-    required Color color,
-    required VoidCallback onPressed,
-  }) {
-    return Container(
-      width: 50,
-      height: 50,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: IconButton(
-        icon: Icon(icon, color: color, size: 24),
-        onPressed: onPressed,
-      ),
     );
   }
 
@@ -747,17 +645,5 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
         });
       }
     }
-  }
-
-  void _handleGoogleLogin() {
-    // Implement Google Sign-In
-  }
-
-  void _handleFacebookLogin() {
-    // Implement Facebook Login
-  }
-
-  void _handleAppleLogin() {
-    // Implement Apple Sign-In
   }
 }

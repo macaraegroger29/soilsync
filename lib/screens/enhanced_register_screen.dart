@@ -153,11 +153,6 @@ class _EnhancedRegisterScreenState extends State<EnhancedRegisterScreen> {
     _serverIpController.text = prefs.getString('server_ip') ?? '';
   }
 
-  Future<void> _saveIps() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('server_ip', _serverIpController.text.trim());
-  }
-
   Future<void> _showIpSettings() async {
     final TextEditingController serverIpController =
         TextEditingController(text: _serverIpController.text);
@@ -215,14 +210,9 @@ class _EnhancedRegisterScreenState extends State<EnhancedRegisterScreen> {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF8D6E63),
-              Color(0xFFA1887F),
-              Color(0xFFD7CCC8),
-            ],
+          image: DecorationImage(
+            image: AssetImage('assets/images/farm_background.jpg'),
+            fit: BoxFit.cover,
           ),
         ),
         child: SafeArea(
@@ -257,7 +247,7 @@ class _EnhancedRegisterScreenState extends State<EnhancedRegisterScreen> {
                                 child: const Icon(
                                   Icons.agriculture,
                                   size: 50,
-                                  color: Color(0xFF8D6E63),
+                                  color: Color(0xFF2E7D32),
                                 ),
                               ),
                               const SizedBox(height: 16),
@@ -283,7 +273,7 @@ class _EnhancedRegisterScreenState extends State<EnhancedRegisterScreen> {
                         // Registration Card
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: Colors.white.withOpacity(0.7),
                             borderRadius: BorderRadius.circular(24),
                             boxShadow: [
                               BoxShadow(
@@ -305,7 +295,7 @@ class _EnhancedRegisterScreenState extends State<EnhancedRegisterScreen> {
                                     style: TextStyle(
                                       fontSize: 24,
                                       fontWeight: FontWeight.bold,
-                                      color: Color(0xFF8D6E63),
+                                      color: Color.fromARGB(255, 26, 84, 29),
                                     ),
                                   ),
                                   const SizedBox(height: 8),
@@ -502,7 +492,7 @@ class _EnhancedRegisterScreenState extends State<EnhancedRegisterScreen> {
                                               _agreeToTerms = value ?? false;
                                             });
                                           },
-                                          activeColor: const Color(0xFF8D6E63),
+                                          activeColor: const Color(0xFF2E7D32),
                                           shape: RoundedRectangleBorder(
                                             borderRadius:
                                                 BorderRadius.circular(4),
@@ -522,7 +512,8 @@ class _EnhancedRegisterScreenState extends State<EnhancedRegisterScreen> {
                                               TextSpan(
                                                 text: 'Terms of Service',
                                                 style: TextStyle(
-                                                  color: Color(0xFF8D6E63),
+                                                  color: Color.fromARGB(
+                                                      255, 26, 84, 29),
                                                   fontWeight: FontWeight.bold,
                                                 ),
                                               ),
@@ -530,7 +521,8 @@ class _EnhancedRegisterScreenState extends State<EnhancedRegisterScreen> {
                                               TextSpan(
                                                 text: 'Privacy Policy',
                                                 style: TextStyle(
-                                                  color: Color(0xFF8D6E63),
+                                                  color: Color.fromARGB(
+                                                      255, 26, 84, 29),
                                                   fontWeight: FontWeight.bold,
                                                 ),
                                               ),
@@ -554,7 +546,7 @@ class _EnhancedRegisterScreenState extends State<EnhancedRegisterScreen> {
                                           }
                                         : null,
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF8D6E63),
+                                      backgroundColor: const Color(0xFF2E7D32),
                                       minimumSize:
                                           const Size(double.infinity, 56),
                                       shape: RoundedRectangleBorder(
@@ -599,7 +591,8 @@ class _EnhancedRegisterScreenState extends State<EnhancedRegisterScreen> {
                                         child: const Text(
                                           'Sign In',
                                           style: TextStyle(
-                                            color: Color(0xFF8D6E63),
+                                            color:
+                                                Color.fromARGB(255, 26, 84, 29),
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
@@ -638,7 +631,7 @@ class _EnhancedRegisterScreenState extends State<EnhancedRegisterScreen> {
                         ],
                       ),
                       child: const Icon(Icons.settings,
-                          color: Color(0xFF8D6E63), size: 28),
+                          color: Color(0xFF2E7D32), size: 28),
                     ),
                   ),
                 ),
@@ -656,7 +649,7 @@ class _EnhancedRegisterScreenState extends State<EnhancedRegisterScreen> {
       style: TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.bold,
-        color: Color(0xFF8D6E63),
+        color: Color.fromARGB(255, 26, 84, 29),
       ),
     );
   }
@@ -678,7 +671,7 @@ class _EnhancedRegisterScreenState extends State<EnhancedRegisterScreen> {
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        prefixIcon: Icon(icon, color: Color(0xFF8D6E63)),
+        prefixIcon: Icon(icon, color: Color(0xFF2E7D32)),
         suffixIcon: suffixIcon,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -690,10 +683,10 @@ class _EnhancedRegisterScreenState extends State<EnhancedRegisterScreen> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Color(0xFF8D6E63), width: 2),
+          borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2),
         ),
         filled: true,
-        fillColor: Colors.grey[50],
+        fillColor: Colors.grey[50]!.withOpacity(0.9),
       ),
       validator: validator,
     );
@@ -711,7 +704,7 @@ class _EnhancedRegisterScreenState extends State<EnhancedRegisterScreen> {
       value: value,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: Color(0xFF8D6E63)),
+        prefixIcon: Icon(icon, color: Color(0xFF2E7D32)),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey[300]!),
@@ -722,10 +715,10 @@ class _EnhancedRegisterScreenState extends State<EnhancedRegisterScreen> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Color(0xFF8D6E63), width: 2),
+          borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2),
         ),
         filled: true,
-        fillColor: Colors.grey[50],
+        fillColor: Colors.grey[50]!.withOpacity(0.9),
       ),
       items: items.map((item) {
         return DropdownMenuItem(
