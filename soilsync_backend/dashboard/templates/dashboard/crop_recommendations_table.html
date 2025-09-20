@@ -1,0 +1,270 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoilSync Dashboard - Crop Recommendations</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center">
+                        <i class="fas fa-leaf text-green-600 text-2xl mr-2"></i>
+                        <span class="text-xl font-bold text-gray-800">SoilSync</span>
+                    </div>
+                    <div class="hidden md:ml-6 md:flex md:space-x-8">
+                        <a href="{% url 'database_dashboard' %}" class="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium">
+                            <i class="fas fa-home mr-1"></i>Dashboard
+                        </a>
+                        {% if is_admin %}
+                        <a href="{% url 'users_table' %}" class="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium">
+                            <i class="fas fa-users mr-1"></i>Users
+                        </a>
+                        {% endif %}
+                        <a href="{% url 'api_soil_data_table' %}" class="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium">
+                            <i class="fas fa-database mr-1"></i>API Soil Data
+                        </a>
+
+                        <a href="{% url 'crop_recommendations_table' %}" class="text-green-600 border-b-2 border-green-600 px-3 py-2 rounded-md text-sm font-medium">
+                            <i class="fas fa-seedling mr-1"></i>Crop
+                        </a>
+                        <a href="{% url 'user_settings' %}" class="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium">
+                            <i class="fas fa-cog mr-1"></i>Settings
+                        </a>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <div class="ml-3 relative">
+                        <div class="flex items-center space-x-4">
+                            <a href="{% url 'user_profile' %}" class="text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-user mr-1"></i>Profile
+                            </a>
+                            <a href="{% url 'dashboard_logout' %}" class="text-red-600 hover:text-red-800">
+                                <i class="fas fa-sign-out-alt mr-1"></i>Logout
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <!-- Page Header -->
+        <div class="px-4 py-6 sm:px-0">
+            <div class="flex justify-between items-center">
+                <h1 class="text-3xl font-bold text-gray-900">Crop Recommendations</h1>
+                <div class="text-sm text-gray-500">
+                    Total: {{ recommendations.count }} traditional + {{ api_soil_data.count }} API recommendations
+                </div>
+            </div>
+        </div>
+
+        <!-- Recommendations Table with Sensor Info -->
+        <div class="bg-white shadow overflow-hidden sm:rounded-md">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location & Sensor</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Soil Data</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recommended Crop</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Confidence</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for recommendation in recommendations %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ recommendation.recommendation_date|date:"M d, Y" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                <div>
+                                    <div class="font-medium">{{ recommendation.soil_data.location|default:"N/A" }}</div>
+                                    {% if recommendation.soil_data.sensor %}
+                                    <div class="text-xs text-gray-500">
+                                        <i class="fas fa-microchip text-blue-500 mr-1"></i>
+                                        {{ recommendation.soil_data.sensor.sensor_name }}
+                                        <span class="text-gray-400">({{ recommendation.soil_data.sensor.device_model }})</span>
+                                    </div>
+                                    {% else %}
+                                    <div class="text-xs text-gray-400">No sensor assigned</div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-900">
+                                <div class="text-xs">
+                                    <span class="inline-block bg-blue-100 text-blue-800 rounded-full px-2 py-1 mr-1">N: {{ recommendation.soil_data.nitrogen|floatformat:1 }}</span>
+                                    <span class="inline-block bg-green-100 text-green-800 rounded-full px-2 py-1 mr-1">P: {{ recommendation.soil_data.phosphorus|floatformat:1 }}</span>
+                                    <span class="inline-block bg-yellow-100 text-yellow-800 rounded-full px-2 py-1 mr-1">K: {{ recommendation.soil_data.potassium|floatformat:1 }}</span>
+                                    <span class="inline-block bg-purple-100 text-purple-800 rounded-full px-2 py-1">pH: {{ recommendation.soil_data.ph_level|floatformat:1 }}</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                {{ recommendation.recommended_crop }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    {% if recommendation.confidence_score >= 0.8 %}bg-green-100 text-green-800
+                                    {% elif recommendation.confidence_score >= 0.6 %}bg-yellow-100 text-yellow-800
+                                    {% else %}bg-red-100 text-red-800{% endif %}">
+                                    {{ recommendation.confidence_score|floatformat:2 }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <div class="flex space-x-2">
+                                    <a href="#" class="text-indigo-600 hover:text-indigo-900">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% if is_admin %}
+                                    <a href="#" class="text-red-600 hover:text-red-900">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+
+                        <!-- API Soil Data Recommendations -->
+                        {% for api_data in api_soil_data %}
+                        <tr class="bg-blue-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ api_data.created_at|date:"M d, Y H:i" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                <div>
+                                    <div class="font-medium">API Submission</div>
+                                    <div class="text-xs text-gray-500">
+                                        <i class="fas fa-user text-green-500 mr-1"></i>
+                                        {{ api_data.user.username }}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-900">
+                                <button onclick="showSoilDataModal({{ api_data.id }}, {{ api_data.nitrogen }}, {{ api_data.phosphorus }}, {{ api_data.potassium }}, {{ api_data.temperature }}, {{ api_data.humidity }}, {{ api_data.ph }}, {{ api_data.rainfall }})"
+                                        class="text-blue-600 hover:text-blue-800 underline text-xs">
+                                    View Details
+                                </button>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                {{ api_data.prediction }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    {% if api_data.confidence >= 0.8 %}bg-green-100 text-green-800
+                                    {% elif api_data.confidence >= 0.6 %}bg-yellow-100 text-yellow-800
+                                    {% else %}bg-red-100 text-red-800{% endif %}">
+                                    {{ api_data.confidence|floatformat:2 }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <div class="flex space-x-2">
+                                    {% if is_admin %}
+                                    <a href="#" onclick="editApiData({{ api_data.id }})" class="text-indigo-600 hover:text-indigo-900">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="#" onclick="deleteApiData({{ api_data.id }})" class="text-red-600 hover:text-red-900">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        {% if recommendations.count == 0 %}
+                        <tr>
+                            <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
+                                <i class="fas fa-inbox text-4xl text-gray-300 mb-2"></i>
+                                <p>No crop recommendations found.</p>
+                                <p class="text-xs mt-1">Add soil data to generate recommendations.</p>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Soil Data Modal -->
+    <div id="soilDataModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">Soil Data Details</h3>
+                    <button onclick="closeSoilDataModal()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="grid grid-cols-2 gap-4" id="soilDataContent">
+                    <!-- Content will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showSoilDataModal(id, nitrogen, phosphorus, potassium, temperature, humidity, ph, rainfall) {
+            const content = document.getElementById('soilDataContent');
+            content.innerHTML = `
+                <div class="bg-blue-100 p-2 rounded">
+                    <span class="font-medium">Nitrogen:</span> ` + nitrogen + ` mg/kg
+                </div>
+                <div class="bg-green-100 p-2 rounded">
+                    <span class="font-medium">Phosphorus:</span> ` + phosphorus + ` mg/kg
+                </div>
+                <div class="bg-yellow-100 p-2 rounded">
+                    <span class="font-medium">Potassium:</span> ` + potassium + ` mg/kg
+                </div>
+                <div class="bg-red-100 p-2 rounded">
+                    <span class="font-medium">Temperature:</span> ` + temperature + `°C
+                </div>
+                <div class="bg-purple-100 p-2 rounded">
+                    <span class="font-medium">Humidity:</span> ` + humidity + `%
+                </div>
+                <div class="bg-indigo-100 p-2 rounded">
+                    <span class="font-medium">pH:</span> ` + ph + `
+                </div>
+                <div class="bg-pink-100 p-2 rounded">
+                    <span class="font-medium">Rainfall:</span> ` + rainfall + ` mm
+                </div>
+            `;
+            document.getElementById('soilDataModal').classList.remove('hidden');
+        }
+
+        function closeSoilDataModal() {
+            document.getElementById('soilDataModal').classList.add('hidden');
+        }
+
+        function editApiData(id) {
+            // Placeholder for edit functionality
+            alert('Edit functionality for API data ID: ' + id);
+        }
+
+        function deleteApiData(id) {
+            if (confirm('Are you sure you want to delete this API soil data entry?')) {
+                // Placeholder for delete functionality
+                alert('Delete functionality for API data ID: ' + id);
+            }
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('soilDataModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeSoilDataModal();
+            }
+        });
+    </script>
+</body>
+</html>

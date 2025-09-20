@@ -6,7 +6,7 @@ class AppConfig {
   //     'http://10.0.2.2:8000'; // For Android emulator
 
   // // PC to physical device
-  static const String baseUrl = 'http://192.168.254.174:8000';
+  static const String baseUrl = 'http://127.0.0.1:8000';
 
   // Add the IP address for your ESP32
   static const String esp32Ip =

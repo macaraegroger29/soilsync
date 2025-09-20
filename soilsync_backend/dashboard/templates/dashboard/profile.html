@@ -1,0 +1,291 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoilSync Dashboard - Profile</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center">
+                        <i class="fas fa-leaf text-green-600 text-2xl mr-2"></i>
+                        <span class="text-xl font-bold text-gray-800">SoilSync</span>
+                    </div>
+                    <div class="hidden md:ml-6 md:flex md:space-x-8">
+                        <a href="{% url 'database_dashboard' %}" class="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium">
+                            <i class="fas fa-home mr-1"></i>Dashboard
+                        </a>
+
+                        <a href="{% url 'crop_recommendations_table' %}" class="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium">
+                            <i class="fas fa-seedling mr-1"></i>Crop
+                        </a>
+                        <a href="{% url 'user_settings' %}" class="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium">
+                            <i class="fas fa-cog mr-1"></i>Settings
+                        </a>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <div class="ml-3 relative">
+                        <div class="flex items-center space-x-4">
+                            <a href="{% url 'user_profile' %}" class="text-green-600 font-semibold">
+                                <i class="fas fa-user mr-1"></i>{{ user.username }}
+                            </a>
+                            <a href="{% url 'dashboard_logout' %}" class="text-red-600 hover:text-red-800">
+                                <i class="fas fa-sign-out-alt mr-1"></i>Logout
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <!-- Page Header -->
+        <div class="px-4 py-6 sm:px-0">
+            <div class="border-b border-gray-200 pb-5">
+                <h1 class="text-3xl font-bold text-gray-900">
+                    <i class="fas fa-user-circle mr-2 text-green-600"></i>User Profile
+                </h1>
+                <p class="mt-2 text-sm text-gray-600">View your account information and activity</p>
+            </div>
+        </div>
+
+        <div class="max-w-4xl mx-auto">
+            <!-- User Info Card -->
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-6">
+                <div class="px-4 py-5 sm:px-6">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">
+                        <i class="fas fa-user mr-2"></i>Account Information
+                    </h3>
+                </div>
+                <div class="border-t border-gray-200 px-4 py-5 sm:p-0">
+                    <dl class="sm:divide-y sm:divide-gray-200">
+                        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                            <dt class="text-sm font-medium text-gray-500">Username</dt>
+                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ user.username }}</dd>
+                        </div>
+                        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                            <dt class="text-sm font-medium text-gray-500">Email</dt>
+                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ user.email }}</dd>
+                        </div>
+                        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                            <dt class="text-sm font-medium text-gray-500">Full Name</dt>
+                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                                {{ user.first_name|default:"Not provided" }} {{ user.last_name|default:"" }}
+                            </dd>
+                        </div>
+                        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                            <dt class="text-sm font-medium text-gray-500">Account Type</dt>
+                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    {{ user.role|title }}
+                                </span>
+                            </dd>
+                        </div>
+                        {% if user.userprofile %}
+                        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                            <dt class="text-sm font-medium text-gray-500">Organization</dt>
+                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                                {{ user.userprofile.organization|default:"Not provided" }}
+                            </dd>
+                        </div>
+                        {% endif %}
+                        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                            <dt class="text-sm font-medium text-gray-500">Date Joined</dt>
+                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ user.date_joined|date:"F d, Y" }}</dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Statistics Cards -->
+            <div class="grid grid-cols-1 gap-6 sm:grid-cols-3 mb-6">
+                <div class="bg-white overflow-hidden shadow rounded-lg">
+                    <div class="p-5">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-seedling text-2xl text-green-600"></i>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">Crop Recommendations</dt>
+                                    <dd class="text-lg font-medium text-gray-900">{{ recommendations_count }}</dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-5 py-3">
+                        <div class="text-sm">
+                            <a href="{% url 'crop_recommendations_table' %}" class="font-medium text-green-600 hover:text-green-500">
+                                View all <i class="fas fa-arrow-right ml-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white overflow-hidden shadow rounded-lg">
+                    <div class="p-5">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-database text-2xl text-blue-600"></i>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">API Soil Data</dt>
+                                    <dd class="text-lg font-medium text-gray-900">{{ api_soil_data_count }}</dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-5 py-3">
+                        <div class="text-sm">
+                            <a href="{% url 'api_soil_data_table' %}" class="font-medium text-blue-600 hover:text-blue-500">
+                                View all <i class="fas fa-arrow-right ml-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white overflow-hidden shadow rounded-lg">
+                    <div class="p-5">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-chart-line text-2xl text-purple-600"></i>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">Account Status</dt>
+                                    <dd class="text-lg font-medium text-gray-900">Active</dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-5 py-3">
+                        <div class="text-sm">
+                            <a href="{% url 'user_settings' %}" class="font-medium text-purple-600 hover:text-purple-500">
+                                Settings <i class="fas fa-arrow-right ml-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent API Soil Data -->
+            {% if api_soil_data %}
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-6">
+                <div class="px-4 py-5 sm:px-6">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">
+                        <i class="fas fa-database mr-2 text-blue-600"></i>
+                        {% if is_admin %}
+                        Recent API Soil Data Submissions (All Users)
+                        {% else %}
+                        Recent API Soil Data Submissions
+                        {% endif %}
+                    </h3>
+                    <p class="mt-1 max-w-2xl text-sm text-gray-500">
+                        {% if is_admin %}
+                        Latest soil analysis submissions from all users
+                        {% else %}
+                        Your latest soil analysis submissions
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="border-t border-gray-200">
+                    <ul class="divide-y divide-gray-200">
+                        {% for data in api_soil_data %}
+                        <li class="px-4 py-4 sm:px-6">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0 h-10 w-10">
+                                        <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                            <i class="fas fa-flask text-blue-600"></i>
+                                        </div>
+                                    </div>
+                                    <div class="ml-4">
+                                        <div class="text-sm font-medium text-gray-900">
+                                            Soil Analysis #{{ data.id }}
+                                            {% if is_admin and data.user != user %}
+                                            <span class="text-xs text-gray-500">by {{ data.user.username }}</span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="text-sm text-gray-500">
+                                            Prediction: {{ data.prediction|default:"Processing..." }}
+                                            {% if data.confidence %}
+                                            ({{ data.confidence }}% confidence)
+                                            {% endif %}
+                                        </div>
+                                        <div class="text-xs text-gray-400">
+                                            pH: {{ data.ph }} | N: {{ data.nitrogen }} | P: {{ data.phosphorus }} | K: {{ data.potassium }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-sm text-gray-500">
+                                    {{ data.created_at|date:"M d, Y H:i" }}
+                                </div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6">
+                    <div class="text-sm">
+                        <a href="{% url 'api_soil_data_table' %}" class="font-medium text-blue-600 hover:text-blue-500">
+                            {% if is_admin %}
+                            View all submissions <i class="fas fa-arrow-right ml-1"></i>
+                            {% else %}
+                            View all your submissions <i class="fas fa-arrow-right ml-1"></i>
+                            {% endif %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Recent Activity -->
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                <div class="px-4 py-5 sm:px-6">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">
+                        <i class="fas fa-history mr-2"></i>Recent Activity
+                    </h3>
+                    <p class="mt-1 max-w-2xl text-sm text-gray-500">Your latest actions in the system</p>
+                </div>
+                <div class="border-t border-gray-200">
+                    {% if recent_activity %}
+                        <ul class="divide-y divide-gray-200">
+                            {% for activity in recent_activity %}
+                                <li class="px-4 py-4 sm:px-6">
+                                    <div class="flex space-x-3">
+                                        <div class="flex-shrink-0">
+                                            <i class="fas fa-clock text-gray-400 mt-1"></i>
+                                        </div>
+                                        <div class="flex-1 space-y-1">
+                                            <div class="flex items-center justify-between">
+                                                <h3 class="text-sm font-medium">{{ activity.action }}</h3>
+                                                <p class="text-sm text-gray-500">{{ activity.timestamp|timesince }} ago</p>
+                                            </div>
+                                            <p class="text-sm text-gray-500">{{ activity.timestamp|date:"M d, Y H:i" }}</p>
+                                        </div>
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="px-4 py-8 text-center text-gray-500">
+                            <i class="fas fa-info-circle text-2xl mb-2"></i>
+                            <p>No recent activity found</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

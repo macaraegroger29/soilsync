@@ -6,4 +6,5 @@ urlpatterns = [
     path('', RootView.as_view(), name='api-root'),
     path('admin/', admin.site.urls),
     path('api/', include('api.urls')),
+    path('dashboard/', include('dashboard.urls')),
 ]

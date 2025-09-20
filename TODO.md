@@ -1,0 +1,2 @@
+- [x] Add "Don't have an account? Register here" link to dashboard login page
+- [x] Remove Avg pH and Avg Humidity from api-soil-data page

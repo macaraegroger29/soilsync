@@ -208,10 +208,14 @@ class PredictSoilView(APIView):
                 else:
                     top_crops = [{"label": str(prediction), "confidence": 1.0}]
 
-                # Save the data with prediction
+                # Get confidence level for the top prediction
+                confidence = top_crops[0]['confidence'] if top_crops else 1.0
+
+                # Save the data with prediction and confidence
                 soil_data = serializer.save(
                     user=request.user,
-                    prediction=prediction
+                    prediction=prediction,
+                    confidence=confidence
                 )
 
                 # Get similar cases from the dataset (legacy, can be removed later)

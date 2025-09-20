@@ -55,7 +55,7 @@ class Dataset(models.Model):
 
 class SoilData(models.Model):
     user = models.ForeignKey(
-        CustomUser, 
+        CustomUser,
         on_delete=CASCADE,
         related_name='soil_data',
         db_index=True
@@ -68,6 +68,7 @@ class SoilData(models.Model):
     ph = models.FloatField()
     rainfall = models.FloatField()
     prediction = models.CharField(max_length=100)
+    confidence = models.FloatField(null=True, blank=True)  # Store confidence level for predictions
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
