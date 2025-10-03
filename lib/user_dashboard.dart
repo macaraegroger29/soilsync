@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'services/sensor_bus.dart';
 import 'screens/enhanced_login_screen.dart';
 import 'config.dart';
 import 'profile_page.dart';
@@ -672,6 +673,24 @@ class _UserDashboardState extends State<UserDashboard>
             _humidityController.text = soilMoisture?.toString() ?? '';
           }
         });
+
+        // Publish reading to SensorBus for auto-collection consumers
+        final n = (soilNitrogen ?? 0).toDouble();
+        final p = (soilPhosphorus ?? 0).toDouble();
+        final k = (soilPotassium ?? 0).toDouble();
+        final t = soilTemperature ?? 0.0;
+        final h = soilMoisture ?? 0.0; // treat moisture as humidity input
+        final phVal = soilPh ?? 7.0;
+        final rainfall = 0.0; // not provided by BT payload; default to 0
+        SensorBus.instance.publish(SensorReading(
+          nitrogen: n,
+          phosphorus: p,
+          potassium: k,
+          temperature: t,
+          humidity: h,
+          ph: phVal,
+          rainfall: rainfall,
+        ));
       }
     }
   }
@@ -733,6 +752,7 @@ class _UserDashboardState extends State<UserDashboard>
                 letterSpacing: 1.2,
               ),
             ),
+            const SizedBox(width: 12),
           ],
         ),
         backgroundColor: Colors.green[700],

@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'config.dart';
-import 'dart:convert';
-import 'package:flutter/services.dart';
-import 'services/location_data_service.dart';
 import 'widgets/location_settings_widget.dart';
 import 'pages/wifi_settings_page.dart';
+import 'pages/crop_data_dashboard.dart';
+import 'pages/retraining_dashboard.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -19,18 +17,11 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _isNotificationsEnabled = true;
   String _selectedLanguage = 'English';
   String _selectedUnit = 'Metric';
-  Map<String, dynamic> _locationData = {};
-  String _selectedRegionCode = '01';
-  String _selectedProvince = 'PANGASINAN';
-  String _selectedCity = 'BAYAMBANG';
-  String _selectedBarangay = '';
-  bool _locationLoaded = false;
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
-    _initLocationData();
   }
 
   Future<void> _loadSettings() async {
@@ -43,76 +34,12 @@ class _SettingsPageState extends State<SettingsPage> {
     });
   }
 
-  Future<void> _initLocationData() async {
-    final data = await LocationDataService().getLocationData();
-    setState(() {
-      _locationData = data;
-      _locationLoaded = true;
-    });
-    _loadLocation();
-  }
-
-  Future<void> _loadLocation() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _selectedRegionCode = prefs.getString('region_code') ?? '01';
-      _selectedProvince = prefs.getString('province') ?? 'PANGASINAN';
-      _selectedCity = prefs.getString('city') ?? 'BAYAMBANG';
-      final barangays = _getBarangays();
-      _selectedBarangay = prefs.getString('barangay') ??
-          (barangays.isNotEmpty ? barangays[0] : '');
-    });
-  }
-
   Future<void> _saveSettings() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('dark_mode', _isDarkMode);
     await prefs.setBool('notifications', _isNotificationsEnabled);
     await prefs.setString('language', _selectedLanguage);
     await prefs.setString('unit', _selectedUnit);
-  }
-
-  Future<void> _saveLocation() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('region_code', _selectedRegionCode);
-    await prefs.setString('province', _selectedProvince);
-    await prefs.setString('city', _selectedCity);
-    await prefs.setString('barangay', _selectedBarangay);
-  }
-
-  List<String> _getRegionCodes() {
-    return _locationData.keys.toList();
-  }
-
-  String _getRegionName(String code) {
-    return _locationData[code]?['region_name'] ?? code;
-  }
-
-  List<String> _getProvinces() {
-    if (_locationData[_selectedRegionCode]?['province_list'] == null) return [];
-    return (_locationData[_selectedRegionCode]['province_list']
-            as Map<String, dynamic>)
-        .keys
-        .toList();
-  }
-
-  List<String> _getCities() {
-    if (_locationData[_selectedRegionCode]?['province_list']?[_selectedProvince]
-            ?['municipality_list'] ==
-        null) return [];
-    return (_locationData[_selectedRegionCode]['province_list']
-            [_selectedProvince]['municipality_list'] as Map<String, dynamic>)
-        .keys
-        .toList();
-  }
-
-  List<String> _getBarangays() {
-    if (_locationData[_selectedRegionCode]?['province_list']?[_selectedProvince]
-            ?['municipality_list']?[_selectedCity]?['barangay_list'] ==
-        null) return [];
-    return List<String>.from(_locationData[_selectedRegionCode]['province_list']
-            [_selectedProvince]['municipality_list'][_selectedCity]
-        ['barangay_list']);
   }
 
   @override
@@ -298,6 +225,66 @@ class _SettingsPageState extends State<SettingsPage> {
                   },
                 ),
               ),
+              Card(
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                child: ListTile(
+                  leading: Icon(Icons.dataset, color: Colors.green[700]),
+                  title: Text(
+                    'Crop Data Collection',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                      color: Colors.green[700],
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Manage soil sensor data and crop records',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 12,
+                    ),
+                  ),
+                  trailing: Icon(Icons.arrow_forward_ios,
+                      size: 16, color: Colors.grey[600]),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CropDataDashboardPage(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              Card(
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                child: ListTile(
+                  leading: Icon(Icons.model_training, color: Colors.green[700]),
+                  title: Text(
+                    'Model Retraining',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                      color: Colors.green[700],
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Train and manage AI models for crop prediction',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 12,
+                    ),
+                  ),
+                  trailing: Icon(Icons.arrow_forward_ios,
+                      size: 16, color: Colors.grey[600]),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const RetrainingDashboardPage(),
+                      ),
+                    );
+                  },
+                ),
+              ),
               SizedBox(height: 16),
               Card(
                 elevation: 8,
@@ -444,26 +431,6 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
       trailing: trailing,
       onTap: onTap,
-    );
-  }
-
-  Widget _buildLocationSection() {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: ListTile(
-        leading: Icon(Icons.location_on, color: Colors.green[700]),
-        title: Text('Location Settings'),
-        subtitle: Text('Set precise location for rainfall data'),
-        trailing: Icon(Icons.arrow_forward_ios),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const LocationSettingsWidget(),
-            ),
-          );
-        },
-      ),
     );
   }
 }

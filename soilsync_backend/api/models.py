@@ -77,3 +77,45 @@ class SoilData(models.Model):
     class Meta:
         db_table = 'soil_data'
         ordering = ['-created_at']
+
+class ModelVersion(models.Model):
+    version = models.CharField(max_length=50, unique=True)
+    model_path = models.CharField(max_length=500)
+    dataset_size = models.IntegerField()
+    accuracy = models.FloatField()
+    precision = models.FloatField()
+    recall = models.FloatField()
+    f1_score = models.FloatField()
+    confusion_matrix = models.JSONField()
+    feature_importance = models.JSONField()
+    training_metrics = models.JSONField()  # Training vs validation accuracy
+    is_active = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        CustomUser,
+        on_delete=CASCADE,
+        related_name='model_versions'
+    )
+
+    def __str__(self):
+        return f"Model v{self.version} - {self.accuracy:.3f} accuracy"
+
+    class Meta:
+        db_table = 'model_versions'
+        ordering = ['-created_at']
+
+class TrainingLog(models.Model):
+    model_version = models.ForeignKey(
+        ModelVersion,
+        on_delete=CASCADE,
+        related_name='training_logs'
+    )
+    log_data = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Training log for v{self.model_version.version}"
+
+    class Meta:
+        db_table = 'training_logs'
+        ordering = ['-created_at']

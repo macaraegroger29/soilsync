@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
 import 'package:soilsync/screens/enhanced_login_screen.dart';
 import 'package:soilsync/screens/enhanced_register_screen.dart';
