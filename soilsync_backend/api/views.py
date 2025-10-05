@@ -733,4 +733,233 @@ def get_training_logs(request, version_id):
         logger.error(f"Error fetching training logs: {str(e)}")
         return Response({'success': False, 'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_crop_recommendations(request):
+    """Get list of available crops for search."""
+    try:
+        # Get unique crops from dataset with optimized query
+        crops = Dataset.objects.values_list('label', flat=True).distinct().order_by('label')
+        crop_list = []
+        
+        for crop in crops:
+            crop_list.append({
+                'name': crop,
+                'label': crop.upper(),
+                'description': _get_crop_description(crop)
+            })
+        
+        return Response({
+            'success': True,
+            'crops': crop_list
+        })
+    except Exception as e:
+        logger.error(f"Error fetching crop recommendations: {str(e)}")
+        return Response({'success': False, 'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def get_crop_soil_recommendations(request):
+    """Get soil requirements for a specific crop."""
+    try:
+        crop = request.data.get('crop')
+        if not crop:
+            return Response({'error': 'Crop parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get all records for this crop from dataset with optimized query
+        crop_data = Dataset.objects.filter(label__iexact=crop).only(
+            'nitrogen', 'phosphorus', 'potassium', 'temperature', 
+            'humidity', 'ph', 'rainfall'
+        )
+        
+        if not crop_data.exists():
+            return Response({'error': f'No data found for crop: {crop}'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Calculate statistics for soil requirements using database aggregation
+        from django.db.models import Min, Max, Avg
+        
+        stats = crop_data.aggregate(
+            nitrogen_min=Min('nitrogen'),
+            nitrogen_max=Max('nitrogen'),
+            nitrogen_avg=Avg('nitrogen'),
+            phosphorus_min=Min('phosphorus'),
+            phosphorus_max=Max('phosphorus'),
+            phosphorus_avg=Avg('phosphorus'),
+            potassium_min=Min('potassium'),
+            potassium_max=Max('potassium'),
+            potassium_avg=Avg('potassium'),
+            temp_min=Min('temperature'),
+            temp_max=Max('temperature'),
+            temp_avg=Avg('temperature'),
+            humidity_min=Min('humidity'),
+            humidity_max=Max('humidity'),
+            humidity_avg=Avg('humidity'),
+            ph_min=Min('ph'),
+            ph_max=Max('ph'),
+            ph_avg=Avg('ph'),
+            rainfall_min=Min('rainfall'),
+            rainfall_max=Max('rainfall'),
+            rainfall_avg=Avg('rainfall'),
+        )
+        
+        sample_size = crop_data.count()
+        
+        # Build recommendations from database aggregation results
+        recommendations = {
+            'crop': crop,
+            'nitrogen_min': stats['nitrogen_min'],
+            'nitrogen_max': stats['nitrogen_max'],
+            'nitrogen_mean': round(stats['nitrogen_avg'], 2),
+            'phosphorus_min': stats['phosphorus_min'],
+            'phosphorus_max': stats['phosphorus_max'],
+            'phosphorus_mean': round(stats['phosphorus_avg'], 2),
+            'potassium_min': stats['potassium_min'],
+            'potassium_max': stats['potassium_max'],
+            'potassium_mean': round(stats['potassium_avg'], 2),
+            'temp_min': stats['temp_min'],
+            'temp_max': stats['temp_max'],
+            'temp_mean': round(stats['temp_avg'], 2),
+            'humidity_min': stats['humidity_min'],
+            'humidity_max': stats['humidity_max'],
+            'humidity_mean': round(stats['humidity_avg'], 2),
+            'ph_min': stats['ph_min'],
+            'ph_max': stats['ph_max'],
+            'ph_mean': round(stats['ph_avg'], 2),
+            'rainfall_min': stats['rainfall_min'],
+            'rainfall_max': stats['rainfall_max'],
+            'rainfall_mean': round(stats['rainfall_avg'], 2),
+            'sample_size': sample_size,
+            'notes': _get_crop_growing_notes(crop)
+        }
+        
+        return Response({
+            'success': True,
+            'recommendations': recommendations
+        })
+    except Exception as e:
+        logger.error(f"Error fetching crop soil recommendations: {str(e)}")
+        return Response({'success': False, 'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_all_crop_soil_recommendations(request):
+    """Get soil requirements for all crops in one call."""
+    try:
+        from django.db.models import Min, Max, Avg
+        crops = Dataset.objects.values_list('label', flat=True).distinct()
+        all_recommendations = {}
+        for crop in crops:
+            crop_data = Dataset.objects.filter(label__iexact=crop)
+            if not crop_data.exists():
+                continue
+            stats = crop_data.aggregate(
+                nitrogen_min=Min('nitrogen'),
+                nitrogen_max=Max('nitrogen'),
+                nitrogen_avg=Avg('nitrogen'),
+                phosphorus_min=Min('phosphorus'),
+                phosphorus_max=Max('phosphorus'),
+                phosphorus_avg=Avg('phosphorus'),
+                potassium_min=Min('potassium'),
+                potassium_max=Max('potassium'),
+                potassium_avg=Avg('potassium'),
+                temp_min=Min('temperature'),
+                temp_max=Max('temperature'),
+                temp_avg=Avg('temperature'),
+                humidity_min=Min('humidity'),
+                humidity_max=Max('humidity'),
+                humidity_avg=Avg('humidity'),
+                ph_min=Min('ph'),
+                ph_max=Max('ph'),
+                ph_avg=Avg('ph'),
+                rainfall_min=Min('rainfall'),
+                rainfall_max=Max('rainfall'),
+                rainfall_avg=Avg('rainfall'),
+            )
+            sample_size = crop_data.count()
+            recommendations = {
+                'crop': crop,
+                'nitrogen_min': stats['nitrogen_min'],
+                'nitrogen_max': stats['nitrogen_max'],
+                'nitrogen_mean': round(stats['nitrogen_avg'], 2),
+                'phosphorus_min': stats['phosphorus_min'],
+                'phosphorus_max': stats['phosphorus_max'],
+                'phosphorus_mean': round(stats['phosphorus_avg'], 2),
+                'potassium_min': stats['potassium_min'],
+                'potassium_max': stats['potassium_max'],
+                'potassium_mean': round(stats['potassium_avg'], 2),
+                'temp_min': stats['temp_min'],
+                'temp_max': stats['temp_max'],
+                'temp_mean': round(stats['temp_avg'], 2),
+                'humidity_min': stats['humidity_min'],
+                'humidity_max': stats['humidity_max'],
+                'humidity_mean': round(stats['humidity_avg'], 2),
+                'ph_min': stats['ph_min'],
+                'ph_max': stats['ph_max'],
+                'ph_mean': round(stats['ph_avg'], 2),
+                'rainfall_min': stats['rainfall_min'],
+                'rainfall_max': stats['rainfall_max'],
+                'rainfall_mean': round(stats['rainfall_avg'], 2),
+                'sample_size': sample_size,
+                'notes': _get_crop_growing_notes(crop)
+            }
+            all_recommendations[crop] = recommendations
+        return Response({'success': True, 'all_recommendations': all_recommendations})
+    except Exception as e:
+        logger.error(f"Error fetching all crop soil recommendations: {str(e)}")
+        return Response({'success': False, 'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+def _get_crop_description(crop):
+    """Get description for a crop."""
+    descriptions = {
+        'rice': 'Staple grain crop, requires high water and warm climate',
+        'maize': 'Corn crop, versatile and widely grown',
+        'chickpea': 'Legume crop, good for soil nitrogen fixation',
+        'kidneybeans': 'Protein-rich legume, good for crop rotation',
+        'pigeonpeas': 'Drought-resistant legume crop',
+        'mothbeans': 'Small legume, good for arid regions',
+        'blackgram': 'Black gram legume, high protein content',
+        'lentil': 'Nutritious legume, good for soil health',
+        'pomegranate': 'Fruit tree, requires well-drained soil',
+        'banana': 'Tropical fruit, requires warm climate',
+        'mango': 'Tropical fruit tree, requires good drainage',
+        'grapes': 'Vine fruit, requires specific soil conditions',
+        'watermelon': 'Summer fruit, requires sandy soil',
+        'muskmelon': 'Melon crop, requires warm climate',
+        'apple': 'Temperate fruit tree, requires cold winters',
+        'orange': 'Citrus fruit, requires subtropical climate',
+        'papaya': 'Tropical fruit, fast-growing tree',
+        'coconut': 'Tropical palm, requires coastal climate',
+        'cotton': 'Fiber crop, requires warm climate',
+        'jute': 'Fiber crop, requires humid climate',
+        'coffee': 'Beverage crop, requires high altitude and shade',
+    }
+    return descriptions.get(crop.lower(), 'Agricultural crop')
+
+def _get_crop_growing_notes(crop):
+    """Get growing notes for a crop."""
+    notes = {
+        'rice': 'Requires flooded conditions during growth. Plant in well-drained soil with good water retention.',
+        'maize': 'Plant in rows with adequate spacing. Requires regular watering and fertilization.',
+        'chickpea': 'Drought-tolerant legume. Good for crop rotation and soil improvement.',
+        'kidneybeans': 'Plant after last frost. Requires support for climbing varieties.',
+        'pigeonpeas': 'Drought-resistant and heat-tolerant. Good for marginal soils.',
+        'mothbeans': 'Fast-growing legume. Good for green manure and soil improvement.',
+        'blackgram': 'Short-duration crop. Good for intercropping and soil health.',
+        'lentil': 'Cool-season crop. Plant in well-drained soil with good organic matter.',
+        'pomegranate': 'Requires full sun and well-drained soil. Prune regularly for better yield.',
+        'banana': 'Tropical plant requiring warm climate. Needs regular watering and fertilization.',
+        'mango': 'Large tree requiring space. Plant in well-drained soil with good organic matter.',
+        'grapes': 'Requires trellis support. Plant in well-drained soil with good sun exposure.',
+        'watermelon': 'Warm-season crop. Plant in sandy soil with good drainage.',
+        'muskmelon': 'Requires warm soil for germination. Plant after last frost.',
+        'apple': 'Temperate fruit tree. Requires chilling hours for proper fruiting.',
+        'orange': 'Citrus tree requiring subtropical climate. Needs regular watering and fertilization.',
+        'papaya': 'Fast-growing tropical tree. Plant in well-drained soil with good sun exposure.',
+        'coconut': 'Tropical palm. Requires coastal climate and sandy soil.',
+        'cotton': 'Warm-season crop. Requires long growing season and adequate moisture.',
+        'jute': 'Fiber crop requiring humid climate. Good for soil improvement.',
+        'coffee': 'Shade-loving crop. Requires high altitude and consistent moisture.',
+    }
+    return notes.get(crop.lower(), 'Follow standard agricultural practices for optimal growth.')
+
 

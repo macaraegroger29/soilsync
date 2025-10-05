@@ -13,6 +13,9 @@ from .views import (
     deploy_model,
     upload_csv_data,
     get_training_logs,
+    get_crop_recommendations,
+    get_crop_soil_recommendations,
+    get_all_crop_soil_recommendations,
 )
 from rest_framework_simplejwt.views import TokenRefreshView
 
@@ -31,4 +34,7 @@ urlpatterns = [
     path('models/<int:version_id>/deploy/', deploy_model, name='deploy_model'),
     path('upload-csv/', upload_csv_data, name='upload_csv_data'),
     path('models/<int:version_id>/logs/', get_training_logs, name='get_training_logs'),
+    path('crop-recommendations/', get_crop_recommendations, name='get_crop_recommendations'),
+    path('crop-soil-recommendations/', get_crop_soil_recommendations, name='get_crop_soil_recommendations'),
+    path('all-crop-soil-recommendations/', get_all_crop_soil_recommendations, name='all_crop_soil_recommendations'),
 ]
