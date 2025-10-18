@@ -174,7 +174,14 @@ class _UserDashboardState extends State<UserDashboard>
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         setState(() {
-          _predictionHistory = List<Map<String, dynamic>>.from(data);
+          // Convert all predictions in the history to crop names
+          _predictionHistory =
+              List<Map<String, dynamic>>.from(data).map((item) {
+            final convertedItem = Map<String, dynamic>.from(item);
+            convertedItem['prediction'] =
+                _convertCropIdToName(item['prediction']?.toString() ?? '');
+            return convertedItem;
+          }).toList();
         });
       } else {
         print('Error loading prediction history: ${response.body}');
@@ -236,8 +243,13 @@ class _UserDashboardState extends State<UserDashboard>
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
         setState(() {
-          _predictionResult = data['prediction'];
-          _predictionHistory.insert(0, data['data']);
+          _predictionResult =
+              _convertCropIdToName(data['prediction']?.toString() ?? '');
+          // Convert the prediction in the data before adding to history
+          final historyData = Map<String, dynamic>.from(data['data']);
+          historyData['prediction'] =
+              _convertCropIdToName(data['prediction']?.toString() ?? '');
+          _predictionHistory.insert(0, historyData);
           _similarCases =
               List<Map<String, dynamic>>.from(data['similar_cases']);
           if (data['top_crops'] != null && data['top_crops'] is List) {
@@ -251,7 +263,8 @@ class _UserDashboardState extends State<UserDashboard>
         if (!_isAutomaticMode) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Prediction successful: ${data['prediction']}'),
+              content: Text(
+                  'Prediction successful: ${_convertCropIdToName(data['prediction']?.toString() ?? '')}'),
               backgroundColor: Colors.green,
             ),
           );
@@ -694,6 +707,48 @@ class _UserDashboardState extends State<UserDashboard>
         ));
       }
     }
+  }
+
+  // Helper method to convert crop ID to crop name
+  String _convertCropIdToName(String cropIdOrName) {
+    // If it's already a valid crop name, return as is
+    final availableCrops = [
+      'rice',
+      'maize',
+      'chickpea',
+      'kidneybeans',
+      'pigeonpeas',
+      'mothbeans',
+      'blackgram',
+      'lentil',
+      'pomegranate',
+      'banana',
+      'mango',
+      'grapes',
+      'watermelon',
+      'muskmelon',
+      'apple',
+      'orange',
+      'papaya',
+      'coconut',
+      'cotton',
+      'jute',
+      'coffee'
+    ];
+
+    final lowerCropIdOrName = cropIdOrName.toLowerCase().trim();
+    if (availableCrops.contains(lowerCropIdOrName)) {
+      return lowerCropIdOrName;
+    }
+
+    // If it's a number, try to map it to a crop name
+    final cropId = int.tryParse(cropIdOrName);
+    if (cropId != null && cropId >= 0 && cropId < availableCrops.length) {
+      return availableCrops[cropId];
+    }
+
+    // Fallback: return the original value
+    return cropIdOrName;
   }
 
   // Helper method to get crop icon path
@@ -1362,7 +1417,8 @@ class _UserDashboardState extends State<UserDashboard>
             leading: CircleAvatar(
               backgroundColor: Colors.green[100],
               child: Image.asset(
-                _getCropIconPath(prediction['prediction'] ?? ''),
+                _getCropIconPath(_convertCropIdToName(
+                    prediction['prediction']?.toString() ?? '')),
                 width: 28,
                 height: 28,
                 fit: BoxFit.contain,
@@ -1372,7 +1428,7 @@ class _UserDashboardState extends State<UserDashboard>
               ),
             ),
             title: Text(
-              prediction['prediction'] ?? 'Unknown',
+              _convertCropIdToName(prediction['prediction']?.toString() ?? ''),
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,

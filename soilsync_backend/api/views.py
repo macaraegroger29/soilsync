@@ -327,6 +327,12 @@ class PredictSoilView(APIView):
 
                 # Make prediction
                 prediction = model.predict(input_data)[0]
+                # Ensure prediction is always a crop name string
+                if hasattr(model, 'classes_') and not isinstance(prediction, str):
+                    try:
+                        prediction = model.classes_[prediction]
+                    except Exception:
+                        prediction = str(prediction)
                 logger.info(f"Made prediction: {prediction} for input: {input_data}")
 
                 # Get top N probable crops using predict_proba
