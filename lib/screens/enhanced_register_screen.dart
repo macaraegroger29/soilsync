@@ -25,6 +25,7 @@ class _EnhancedRegisterScreenState extends State<EnhancedRegisterScreen> {
   final _farmNameController = TextEditingController();
   final _farmSizeController = TextEditingController();
   final TextEditingController _serverIpController = TextEditingController();
+  final TextEditingController _locationController = TextEditingController();
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -73,6 +74,7 @@ class _EnhancedRegisterScreenState extends State<EnhancedRegisterScreen> {
     _farmNameController.dispose();
     _farmSizeController.dispose();
     _serverIpController.dispose();
+    _locationController.dispose();
     super.dispose();
   }
 
@@ -376,6 +378,19 @@ class _EnhancedRegisterScreenState extends State<EnhancedRegisterScreen> {
                                     validator: (value) {
                                       if (value?.isEmpty ?? true) {
                                         return 'Please enter your phone number';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                  const SizedBox(height: 16),
+                                  _buildTextField(
+                                    controller: _locationController,
+                                    label: 'Location',
+                                    hint: 'e.g., Manila, Philippines',
+                                    icon: Icons.location_on_outlined,
+                                    validator: (value) {
+                                      if (value?.isEmpty ?? true) {
+                                        return 'Please enter your location';
                                       }
                                       return null;
                                     },
@@ -801,6 +816,8 @@ class _EnhancedRegisterScreenState extends State<EnhancedRegisterScreen> {
               'email': _emailController.text.trim(),
               'password': _passwordController.text,
               'role': 'user',
+              'phone': _phoneController.text.trim(),
+              'location': _locationController.text.trim(),
             }),
           )
           .timeout(Duration(seconds: 30));

@@ -8,6 +8,8 @@ class CustomUser(AbstractUser):
         ('user', 'User'),
     )
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='user')
+    phone = models.CharField(max_length=64, blank=True, null=True)
+    location = models.CharField(max_length=256, blank=True, null=True)
 
     groups = models.ManyToManyField(
         Group, 

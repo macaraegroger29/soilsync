@@ -799,6 +799,24 @@ class _UserDashboardState extends State<UserDashboard>
         automaticallyImplyLeading: false, // Remove hamburger/back button
         title: Row(
           children: [
+            Container(
+              width: 37,
+              height: 37,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.asset(
+                  'assets/icons/app_icon.png',
+                  width: 32,
+                  height: 32,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    // Fallback to eco icon if image fails to load
+                    return Icon(Icons.eco, color: Colors.white, size: 24);
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
             Text(
               'SoilSync',
               style: TextStyle(

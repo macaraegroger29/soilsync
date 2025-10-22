@@ -51,6 +51,7 @@ class _SettingsPageState extends State<SettingsPage> {
         elevation: 0,
       ),
       body: Container(
+        constraints: BoxConstraints.expand(),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -63,114 +64,15 @@ class _SettingsPageState extends State<SettingsPage> {
           padding: EdgeInsets.all(16.0),
           child: Column(
             children: [
-              Card(
-                elevation: 8,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Column(
-                  children: [
-                    _buildSettingTile(
-                      'Dark Mode',
-                      'Enable dark theme',
-                      Icons.dark_mode,
-                      Switch(
-                        value: _isDarkMode,
-                        onChanged: (value) {
-                          setState(() {
-                            _isDarkMode = value;
-                            _saveSettings();
-                          });
-                        },
-                        activeColor: Colors.green[700],
-                      ),
-                    ),
-                    Divider(height: 1),
-                    _buildSettingTile(
-                      'Notifications',
-                      'Enable push notifications',
-                      Icons.notifications,
-                      Switch(
-                        value: _isNotificationsEnabled,
-                        onChanged: (value) {
-                          setState(() {
-                            _isNotificationsEnabled = value;
-                            _saveSettings();
-                          });
-                        },
-                        activeColor: Colors.green[700],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 16),
-              Card(
-                elevation: 8,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Column(
-                  children: [
-                    _buildSettingTile(
-                      'Language',
-                      'Select app language',
-                      Icons.language,
-                      DropdownButton<String>(
-                        value: _selectedLanguage,
-                        items: ['English', 'Spanish', 'French', 'German']
-                            .map((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          );
-                        }).toList(),
-                        onChanged: (String? newValue) {
-                          if (newValue != null) {
-                            setState(() {
-                              _selectedLanguage = newValue;
-                              _saveSettings();
-                            });
-                          }
-                        },
-                        underline: Container(),
-                      ),
-                    ),
-                    Divider(height: 1),
-                    _buildSettingTile(
-                      'Units',
-                      'Select measurement units',
-                      Icons.straighten,
-                      DropdownButton<String>(
-                        value: _selectedUnit,
-                        items: ['Metric', 'Imperial'].map((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          );
-                        }).toList(),
-                        onChanged: (String? newValue) {
-                          if (newValue != null) {
-                            setState(() {
-                              _selectedUnit = newValue;
-                              _saveSettings();
-                            });
-                          }
-                        },
-                        underline: Container(),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 16),
-              // Move Location Settings card here
+              // Removed dark mode & notification settings.
+              // Removed language and units settings.
+              // Keep only Location Settings card.
               Card(
                 margin: const EdgeInsets.symmetric(vertical: 8),
                 child: ListTile(
                   leading: Icon(Icons.location_on, color: Colors.green[700]),
                   title: Text(
-                    'Location Settings',
+                    'Rainfall Location',
                     style: TextStyle(
                       fontWeight: FontWeight.w500,
                       color: Colors.green[700],
@@ -190,96 +92,6 @@ class _SettingsPageState extends State<SettingsPage> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => const LocationSettingsWidget(),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              Card(
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                child: ListTile(
-                  leading: Icon(Icons.wifi, color: Colors.green[700]),
-                  title: Text(
-                    'WiFi Settings',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      color: Colors.green[700],
-                    ),
-                  ),
-                  subtitle: Text(
-                    'Configure ESP32 WiFi credentials',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 12,
-                    ),
-                  ),
-                  trailing: Icon(Icons.arrow_forward_ios,
-                      size: 16, color: Colors.grey[600]),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const WifiSettingsPage(),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              Card(
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                child: ListTile(
-                  leading: Icon(Icons.dataset, color: Colors.green[700]),
-                  title: Text(
-                    'Crop Data Collection',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      color: Colors.green[700],
-                    ),
-                  ),
-                  subtitle: Text(
-                    'Manage soil sensor data and crop records',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 12,
-                    ),
-                  ),
-                  trailing: Icon(Icons.arrow_forward_ios,
-                      size: 16, color: Colors.grey[600]),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const CropDataDashboardPage(),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              Card(
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                child: ListTile(
-                  leading: Icon(Icons.model_training, color: Colors.green[700]),
-                  title: Text(
-                    'Model Retraining',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      color: Colors.green[700],
-                    ),
-                  ),
-                  subtitle: Text(
-                    'Train and manage AI models for crop prediction',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 12,
-                    ),
-                  ),
-                  trailing: Icon(Icons.arrow_forward_ios,
-                      size: 16, color: Colors.grey[600]),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const RetrainingDashboardPage(),
                       ),
                     );
                   },

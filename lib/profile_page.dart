@@ -213,8 +213,12 @@ class _ProfilePageState extends State<ProfilePage> {
         },
       );
 
+      print('Profile API Response Status: ${response.statusCode}');
+      print('Profile API Response Body: ${response.body}');
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        print('Parsed user data: $data');
         setState(() {
           _userData = data;
           _totalPredictions = data['total_predictions'] ?? 0;
@@ -222,7 +226,8 @@ class _ProfilePageState extends State<ProfilePage> {
           _isLoading = false;
         });
       } else {
-        throw Exception('Failed to load user data');
+        print('Profile API Error: ${response.statusCode} - ${response.body}');
+        throw Exception('Failed to load user data: ${response.statusCode}');
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -243,6 +248,7 @@ class _ProfilePageState extends State<ProfilePage> {
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
           : Container(
+              constraints: BoxConstraints.expand(),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
@@ -255,69 +261,17 @@ class _ProfilePageState extends State<ProfilePage> {
                 padding: EdgeInsets.all(16.0),
                 child: Column(
                   children: [
-                    // Profile picture and name
-                    SizedBox(height: 16),
-                    Center(
-                      child: Column(
-                        children: [
-                          Stack(
-                            children: [
-                              Container(
-                                width: 110,
-                                height: 110,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.green[700]!,
-                                    width: 3,
-                                  ),
-                                ),
-                                child: ClipOval(
-                                  child: _profileImage != null
-                                      ? Image.file(
-                                          _profileImage!,
-                                          fit: BoxFit.cover,
-                                        )
-                                      : Container(
-                                          color: Colors.green[100],
-                                          child: Icon(
-                                            Icons.person,
-                                            size: 70,
-                                            color: Colors.green[700],
-                                          ),
-                                        ),
-                                ),
-                              ),
-                              Positioned(
-                                bottom: 0,
-                                right: 0,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.green[700],
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: IconButton(
-                                    icon: Icon(
-                                      Icons.camera_alt,
-                                      color: Colors.white,
-                                      size: 20,
-                                    ),
-                                    onPressed: _showImagePickerModal,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 12),
-                          Text(
-                            _userData?['username'] ?? 'User',
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green[700],
-                            ),
-                          ),
-                        ],
+                    // Username only
+                    SizedBox(height: 0),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Hello, ${_userData?['username'] ?? 'User'}!',
+                        style: TextStyle(
+                          fontSize: 35,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                     SizedBox(height: 24),
@@ -344,28 +298,6 @@ class _ProfilePageState extends State<ProfilePage> {
                                     color: Colors.green[700],
                                   ),
                                 ),
-                                InkWell(
-                                  onTap: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                            'Edit profile feature coming soon!'),
-                                        backgroundColor: Colors.green[700],
-                                      ),
-                                    );
-                                  },
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.edit,
-                                          size: 16, color: Colors.green[700]),
-                                      SizedBox(width: 4),
-                                      Text('Edit',
-                                          style: TextStyle(
-                                              color: Colors.green[700],
-                                              fontWeight: FontWeight.w500)),
-                                    ],
-                                  ),
-                                ),
                               ],
                             ),
                             SizedBox(height: 16),
@@ -373,8 +305,6 @@ class _ProfilePageState extends State<ProfilePage> {
                                 _userData?['email'] ?? ''),
                             _buildInfoTile(Icons.phone, 'Phone',
                                 _userData?['phone'] ?? 'Not set'),
-                            _buildInfoTile(Icons.language, 'Website',
-                                _userData?['website'] ?? 'Not set'),
                             _buildInfoTile(Icons.location_on, 'Location',
                                 _userData?['location'] ?? 'Not set'),
                           ],

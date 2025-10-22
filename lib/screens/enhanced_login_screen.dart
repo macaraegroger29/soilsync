@@ -237,10 +237,13 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
                               ),
                             ],
                           ),
-                          child: Icon(
-                            Icons.eco,
-                            size: 50,
-                            color: Color(0xFF2E7D32),
+                          child: ClipOval(
+                            child: Image.asset(
+                              'assets/icons/app_icon.png',
+                              width: 100,
+                              height: 100,
+                              fit: BoxFit.cover,
+                            ),
                           ),
                         ),
 

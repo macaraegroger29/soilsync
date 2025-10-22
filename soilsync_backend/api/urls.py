@@ -16,6 +16,7 @@ from .views import (
     get_crop_recommendations,
     get_crop_soil_recommendations,
     get_all_crop_soil_recommendations,
+    UserProfileView,
 )
 from rest_framework_simplejwt.views import TokenRefreshView
 
@@ -27,6 +28,7 @@ urlpatterns = [
     path('predict/', PredictSoilView.as_view(), name='predict'),
     path('retrain/', retrain_model, name='retrain_model'),
     path('users/', ListUsersView.as_view(), name='list_users'),
+    path('user/profile/', UserProfileView.as_view(), name='user_profile'),
     path('dataset/', ListDatasetView.as_view(), name='list_dataset'),
     path('weather/', WeatherView.as_view(), name='weather'),
     path('models/', get_model_versions, name='get_model_versions'),

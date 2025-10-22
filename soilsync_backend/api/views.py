@@ -969,3 +969,44 @@ def _get_crop_growing_notes(crop):
     return notes.get(crop.lower(), 'Follow standard agricultural practices for optimal growth.')
 
 
+class UserProfileView(APIView):
+    """Get current user's profile information"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        try:
+            user = request.user
+            
+            # Get user's prediction count
+            total_predictions = SoilData.objects.filter(user=user).count()
+            
+            # Get most predicted crop
+            from django.db.models import Count
+            most_predicted = SoilData.objects.filter(user=user).values('prediction').annotate(
+                count=Count('prediction')
+            ).order_by('-count').first()
+            
+            most_predicted_crop = most_predicted['prediction'] if most_predicted else 'None'
+            
+            user_data = {
+                'username': user.username,
+                'email': user.email,
+                'role': user.role,
+                'date_joined': user.date_joined,
+                'last_login': user.last_login,
+                'total_predictions': total_predictions,
+                'most_predicted_crop': most_predicted_crop,
+                'phone': user.phone or '',
+                'location': user.location or '',
+            }
+            
+            return Response(user_data)
+            
+        except Exception as e:
+            logger.error(f"Error fetching user profile: {str(e)}")
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
