@@ -4,7 +4,7 @@ from .views import (
     crop_recommendations_table, system_feedback_table,
     activity_logs_table, users_table, user_settings, user_profile,
     edit_user, delete_user, toggle_user_status, api_soil_data_table,
-    export_api_soil_data_csv, export_api_soil_data_pdf
+    export_api_soil_data_csv, export_api_soil_data_pdf, soil_parameter_trends
 )
 from .api_views import (
     receive_prediction, get_predictions, get_predictions_realtime,
@@ -43,4 +43,7 @@ urlpatterns = [
     path('api/soil-data/<int:pk>/', soil_data_detail, name='soil_data_detail'),
     path('api/sensors/', sensor_device_list_create, name='sensor_device_list_create'),
     path('api/crop-recommendations/', crop_recommendation_list_create, name='crop_recommendation_list_create'),
+
+    # Trends API endpoint
+    path('api/soil-parameter-trends/', soil_parameter_trends, name='soil_parameter_trends'),
 ]

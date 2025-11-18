@@ -15,7 +15,7 @@
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
                     <div class="flex-shrink-0 flex items-center">
-                        <i class="fas fa-leaf text-green-600 text-2xl mr-2"></i>
+                        <img src="{% static 'app_icon.png' %}" alt="SoilSync Logo" class="h-8 w-8 mr-2">
                         <span class="text-xl font-bold text-gray-800">SoilSync</span>
                     </div>
                     <div class="hidden md:ml-6 md:flex md:space-x-8">
@@ -78,7 +78,7 @@
         {% endif %}
 
         <!-- Soil Data Summary Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div class="grid grid-cols-1 gap-6 mb-6">
             <div class="bg-white shadow overflow-hidden sm:rounded-lg">
                 <div class="px-4 py-5 sm:p-6">
                     <div class="flex items-center">
@@ -88,20 +88,6 @@
                         <div class="ml-4">
                             <dt class="text-sm font-medium text-gray-500 truncate">Total Records</dt>
                             <dd class="text-2xl font-semibold text-gray-900">{{ api_soil_data|length }}</dd>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-                <div class="px-4 py-5 sm:p-6">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0 bg-blue-500 rounded-md p-3">
-                            <i class="fas fa-users text-white text-xl"></i>
-                        </div>
-                        <div class="ml-4">
-                            <dt class="text-sm font-medium text-gray-500 truncate">Users</dt>
-                            <dd class="text-2xl font-semibold text-gray-900">{{ api_soil_data|length|default:0 }}</dd>
                         </div>
                     </div>
                 </div>

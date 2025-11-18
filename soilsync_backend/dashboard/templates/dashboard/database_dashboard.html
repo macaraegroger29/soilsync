@@ -8,6 +8,8 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 </head>
 <body class="bg-gray-100">
     <!-- Navigation -->
@@ -16,7 +18,7 @@
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
                     <div class="flex-shrink-0 flex items-center">
-                        <i class="fas fa-leaf text-green-600 text-2xl mr-2"></i>
+                        <img src="{% static 'app_icon.png' %}" alt="SoilSync Logo" class="h-8 w-8 mr-2">
                         <span class="text-xl font-bold text-gray-800">SoilSync</span>
                     </div>
                     <div class="hidden md:ml-6 md:flex md:space-x-8">
@@ -196,29 +198,136 @@
         </div>
 
         <!-- Charts Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div class="grid grid-cols-1 gap-6 mb-8">
+            <!-- Time-series Trends Chart -->
             <div class="bg-white shadow overflow-hidden sm:rounded-lg">
                 <div class="px-4 py-5 sm:px-6">
-                    <h3 class="text-lg leading-6 font-medium text-gray-900">
-                        <i class="fas fa-chart-bar text-green-500 mr-2"></i>Soil pH Distribution
-                    </h3>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg leading-6 font-medium text-gray-900">
+                                <i class="fas fa-chart-line text-purple-500 mr-2"></i>Soil Parameter Trends
+                            </h3>
+                            <p class="mt-1 max-w-2xl text-sm text-gray-500">Historical trends of soil parameters with date range filters</p>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="flex items-center space-x-2">
+                                <label for="days-select" class="text-sm text-gray-600">Time Range:</label>
+                                <select id="days-select" class="text-sm border border-gray-300 rounded px-2 py-1">
+                                    <option value="7">Last 7 days</option>
+                                    <option value="30" selected>Last 30 days</option>
+                                    <option value="90">Last 90 days</option>
+                                    <option value="365">Last year</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <label class="text-sm text-gray-600">Parameters:</label>
+                                <div class="flex space-x-1">
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="param-temperature" class="mr-1" checked>
+                                        <span class="text-xs">Temp</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="param-humidity" class="mr-1" checked>
+                                        <span class="text-xs">Humidity</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="param-ph" class="mr-1" checked>
+                                        <span class="text-xs">pH</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="param-nitrogen" class="mr-1">
+                                        <span class="text-xs">N</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="param-phosphorus" class="mr-1">
+                                        <span class="text-xs">P</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="param-potassium" class="mr-1">
+                                        <span class="text-xs">K</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="px-4 py-5">
-                    <canvas id="phChart" width="400" height="200"></canvas>
+                    <canvas id="trendsChart" width="800" height="300"></canvas>
                 </div>
             </div>
 
-            <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-                <div class="px-4 py-5 sm:px-6">
-                    <h3 class="text-lg leading-6 font-medium text-gray-900">
-                        <i class="fas fa-chart-pie text-blue-500 mr-2"></i>Crop Recommendations
-                    </h3>
+            <!-- Bottom Row: Recent Readings and Crop Chart -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                    <div class="px-4 py-5 sm:px-6">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">
+                            <i class="fas fa-clock text-blue-500 mr-2"></i>Recent Soil Readings
+                        </h3>
+                        <p class="mt-1 max-w-2xl text-sm text-gray-500">Latest soil data submissions with timestamps</p>
+                    </div>
+                    <div class="border-t border-gray-200">
+                        <ul class="divide-y divide-gray-200">
+                            {% for reading in recent_soil_readings %}
+                            <li class="px-4 py-4">
+                                <div class="flex items-center space-x-4">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-flask text-green-500 text-xl"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-medium text-gray-900 truncate">
+                                            {{ reading.user.username }} - {{ reading.prediction|default:"Analysis" }}
+                                        </p>
+                                        <p class="text-sm text-gray-500">
+                                            pH: {{ reading.ph|floatformat:1 }} • N: {{ reading.nitrogen|floatformat:1 }} • P: {{ reading.phosphorus|floatformat:1 }} • K: {{ reading.potassium|floatformat:1 }}
+                                        </p>
+                                        <p class="text-xs text-gray-400">
+                                            {{ reading.created_at|date:"M d, Y H:i:s" }}
+                                        </p>
+                                    </div>
+                                    <div class="inline-flex items-center text-base font-semibold text-gray-900">
+                                        {% if reading.confidence %}
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                                {% if reading.confidence >= 0.8 %}bg-green-100 text-green-800
+                                                {% elif reading.confidence >= 0.6 %}bg-yellow-100 text-yellow-800
+                                                {% else %}bg-red-100 text-red-800{% endif %}">
+                                                {{ reading.confidence|floatformat:2 }}
+                                            </span>
+                                        {% else %}
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                N/A
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </li>
+                            {% empty %}
+                            <li class="px-4 py-4 text-center text-gray-500">
+                                <i class="fas fa-info-circle mr-2"></i>No recent soil readings
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        <div class="px-4 py-3 bg-gray-50 text-right">
+                            <a href="{% url 'api_soil_data_table' %}" class="text-sm text-blue-600 hover:text-blue-900">
+                                View all readings <i class="fas fa-arrow-right ml-1"></i>
+                            </a>
+                        </div>
+                    </div>
                 </div>
-                <div class="px-4 py-5">
-                    <canvas id="cropChart" width="400" height="200"></canvas>
+
+                <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                    <div class="px-4 py-5 sm:px-6">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">
+                            <i class="fas fa-chart-pie text-blue-500 mr-2"></i>Crop Recommendations
+                        </h3>
+                    </div>
+                    <div class="px-4 py-5">
+                        <canvas id="cropChart" width="400" height="200"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
+
+
 
         <!-- Quick Actions -->
         <div class="bg-white shadow overflow-hidden sm:rounded-lg">
@@ -246,62 +355,273 @@
         // Auto-refresh functionality
         let countdown = 30;
         let refreshTimeout;
-        
+
         function updateCountdown() {
             document.getElementById('countdown').textContent = countdown;
             countdown--;
-            
+
             if (countdown < 0) {
                 location.reload();
             } else {
                 setTimeout(updateCountdown, 1000);
             }
         }
-        
+
         // Start the countdown
         updateCountdown();
-        
+
         // Handle manual refresh button
         document.getElementById('refresh-btn').addEventListener('click', function() {
             location.reload();
         });
-        
-        // Soil pH Distribution Chart
-        const phCtx = document.getElementById('phChart').getContext('2d');
-        new Chart(phCtx, {
-            type: 'bar',
-            data: {
-                labels: ['Acidic (<6.0)', 'Neutral (6.0-7.0)', 'Alkaline (>7.0)'],
-                datasets: [{
-                    label: 'Soil Samples',
-                    data: [{{ ph_distribution.acidic|default:0 }}, {{ ph_distribution.neutral|default:0 }}, {{ ph_distribution.alkaline|default:0 }}],
-                    backgroundColor: ['#ef4444', '#f59e0b', '#10b981']
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false
-            }
-        });
 
-        // Crop Recommendations Chart
+        // Enhanced Interactive Crop Recommendations Chart
         const cropCtx = document.getElementById('cropChart').getContext('2d');
         const cropLabels = {{ crop_labels|default:"[]"|safe }};
         const cropData = {{ crop_data|default:"[]"|safe }};
-        new Chart(cropCtx, {
+
+        // Generate dynamic colors based on data length
+        const generateColors = (count) => {
+            const baseColors = [
+                '#10b981', '#f59e0b', '#3b82f6', '#8b5cf6', '#ef4444',
+                '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1'
+            ];
+            const colors = [];
+            for (let i = 0; i < count; i++) {
+                colors.push(baseColors[i % baseColors.length]);
+            }
+            return colors;
+        };
+
+        const cropChart = new Chart(cropCtx, {
             type: 'doughnut',
             data: {
                 labels: cropLabels,
                 datasets: [{
                     data: cropData,
-                    backgroundColor: ['#10b981', '#f59e0b', '#3b82f6', '#8b5cf6', '#ef4444']
+                    backgroundColor: generateColors(cropData.length),
+                    borderColor: generateColors(cropData.length).map(color => color + 'dd'),
+                    borderWidth: 2,
+                    hoverBorderWidth: 3,
+                    hoverBorderColor: '#ffffff',
+                    hoverOffset: 8
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true,
+                            font: {
+                                size: 12,
+                                weight: '500'
+                            }
+                        },
+                        onClick: (e, legendItem, legend) => {
+                            const index = legendItem.index;
+                            const ci = legend.chart;
+                            const meta = ci.getDatasetMeta(0);
+                            meta.data[index].hidden = !meta.data[index].hidden;
+                            ci.update();
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ffffff',
+                        borderColor: '#ffffff',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        displayColors: true,
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                return `${label}: ${value} (${percentage}%)`;
+                            },
+                            title: function(context) {
+                                return `Crop: ${context[0].label}`;
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    animateScale: true,
+                    animateRotate: true,
+                    duration: 1000,
+                    easing: 'easeInOutQuart'
+                },
+                hover: {
+                    mode: 'nearest',
+                    intersect: true
+                },
+                onClick: function(event, elements) {
+                    if (elements.length > 0) {
+                        const element = elements[0];
+                        const label = cropLabels[element.index];
+                        const value = cropData[element.index];
+
+                        // Create a simple popup with more details
+                        const popup = document.createElement('div');
+                        popup.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg shadow-lg border z-50';
+                        popup.innerHTML = `
+                            <h3 class="text-lg font-semibold text-gray-800 mb-2">${label}</h3>
+                            <p class="text-gray-600">Recommendations: ${value}</p>
+                            <button onclick="this.parentElement.remove()" class="mt-2 px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600">Close</button>
+                        `;
+                        document.body.appendChild(popup);
+
+                        // Auto-remove after 3 seconds
+                        setTimeout(function() {
+                            if (popup.parentElement) popup.remove();
+                        }, 3000);
+                    }
+                }
             }
         });
+
+        // Add chart update function for real-time data
+        function updateCropChart(newLabels, newData) {
+            cropChart.data.labels = newLabels;
+            cropChart.data.datasets[0].data = newData;
+            cropChart.data.datasets[0].backgroundColor = generateColors(newData.length);
+            cropChart.data.datasets[0].borderColor = generateColors(newData.length).map(color => color + 'dd');
+            cropChart.update();
+        }
+
+        // Soil Parameter Trends Chart
+        let trendsChart = null;
+
+        // Function to fetch and update trends data
+        async function fetchTrendsData() {
+            const days = document.getElementById('days-select').value;
+            const params = [];
+
+            // Collect selected parameters
+            ['temperature', 'humidity', 'ph', 'nitrogen', 'phosphorus', 'potassium'].forEach(param => {
+                const checkbox = document.getElementById(`param-${param}`);
+                if (checkbox.checked) {
+                    params.push(param);
+                }
+            });
+
+            if (params.length === 0) {
+                return; // No parameters selected
+            }
+
+            const paramsStr = params.join(',');
+            const url = `{% url 'soil_parameter_trends' %}?params=${paramsStr}&days=${days}`;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (trendsChart) {
+                    trendsChart.destroy();
+                }
+
+                const ctx = document.getElementById('trendsChart').getContext('2d');
+                trendsChart = new Chart(ctx, {
+                    type: 'line',
+                    data: data,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleColor: '#ffffff',
+                                bodyColor: '#ffffff',
+                                borderColor: '#ffffff',
+                                borderWidth: 1,
+                                cornerRadius: 8,
+                                callbacks: {
+                                    title: function(context) {
+                                        const date = new Date(context[0].parsed.x);
+                                        return date.toLocaleString();
+                                    },
+                                    label: function(context) {
+                                        const label = context.dataset.label;
+                                        const value = context.parsed.y;
+                                        const crop = context.raw.crop || 'N/A';
+                                        return `${label}: ${value} (Crop: ${crop})`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                type: 'time',
+                                time: {
+                                    displayFormats: {
+                                        hour: 'MMM dd HH:mm',
+                                        day: 'MMM dd',
+                                        week: 'MMM dd',
+                                        month: 'MMM yyyy'
+                                    }
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Date & Time'
+                                }
+                            },
+                            y: {
+                                beginAtZero: false,
+                                title: {
+                                    display: true,
+                                    text: 'Parameter Values'
+                                }
+                            }
+                        },
+                        elements: {
+                            point: {
+                                radius: 3,
+                                hoverRadius: 6
+                            },
+                            line: {
+                                tension: 0.4
+                            }
+                        },
+                        animation: {
+                            duration: 1000,
+                            easing: 'easeInOutQuart'
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Error fetching trends data:', error);
+            }
+        }
+
+        // Event listeners for filters
+        document.getElementById('days-select').addEventListener('change', fetchTrendsData);
+        ['temperature', 'humidity', 'ph', 'nitrogen', 'phosphorus', 'potassium'].forEach(param => {
+            document.getElementById(`param-${param}`).addEventListener('change', fetchTrendsData);
+        });
+
+        // Initialize trends chart on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchTrendsData();
+        });
+
     </script>
 </body>
 </html>

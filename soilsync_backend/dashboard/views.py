@@ -98,9 +98,8 @@ def dashboard_register(request):
                     password=password1,
                     role=role
                 )
-                messages.success(request, f'Account created successfully! Welcome, {username}!')
-                login(request, user)
-                return redirect('database_dashboard')
+                messages.success(request, f'Account created successfully! Please log in with your new account.')
+                return redirect('dashboard_login')
             except IntegrityError:
                 messages.error(request, 'An error occurred during registration. Please try again.')
     
@@ -185,6 +184,9 @@ def database_dashboard(request):
         crop_labels.append('Others')
         crop_data.append(sum(crop_counts.get(crop, 0) for crop in crop_counts if crop not in crop_labels[:-1]))
 
+    # Get recent soil readings with timestamps for tracking
+    recent_soil_readings = api_soil_data.order_by('-created_at')[:10]
+
     profile_name = request.user.get_full_name() or request.user.username if request.user.is_authenticated else 'Guest'
     profile_email = request.user.email if request.user.is_authenticated else ''
 
@@ -198,6 +200,7 @@ def database_dashboard(request):
         "ph_distribution": ph_distribution,
         "crop_labels": crop_labels,
         "crop_data": crop_data,
+        "recent_soil_readings": recent_soil_readings,
         "profile_name": profile_name,
         "profile_email": profile_email,
     })
@@ -227,10 +230,13 @@ def crop_recommendations_table(request):
     else:
         api_soil_data = APISoilData.objects.select_related('user').filter(user=request.user).order_by('-created_at')
 
+    profile_name = request.user.get_full_name() or request.user.username if request.user.is_authenticated else 'Guest'
+
     return render(request, 'dashboard/crop_recommendations_table.html', {
         'recommendations': recommendations,
         'api_soil_data': api_soil_data,
         'is_admin': is_admin,
+        'profile_name': profile_name,
     })
 
 @login_required(login_url='dashboard_login')
@@ -556,3 +562,81 @@ def export_api_soil_data_pdf(request):
     doc.build(elements)
 
     return response
+
+@login_required(login_url='dashboard_login')
+def soil_parameter_trends(request):
+    """API endpoint to fetch soil parameter trends data for charts"""
+    is_admin = request.user.role == 'admin' or request.user.is_staff
+
+    # Get parameters to display from request (handle comma-separated string)
+    params_str = request.GET.get('params', 'temperature,humidity,ph')
+    parameters = [p.strip() for p in params_str.split(',') if p.strip()]
+    days = int(request.GET.get('days', 30))  # Default to last 30 days
+
+    # Calculate date range
+    from django.utils import timezone
+    from datetime import timedelta
+    end_date = timezone.now()
+    start_date = end_date - timedelta(days=days)
+
+    # Fetch data
+    if is_admin:
+        soil_data = APISoilData.objects.filter(created_at__gte=start_date).order_by('created_at')
+    else:
+        soil_data = APISoilData.objects.filter(user=request.user, created_at__gte=start_date).order_by('created_at')
+
+    # Prepare data for Chart.js
+    datasets = {}
+
+    # Initialize datasets for each parameter
+    param_config = {
+        'temperature': {'label': 'Temperature (°C)', 'color': 'rgba(255, 99, 132, 1)', 'bgColor': 'rgba(255, 99, 132, 0.2)'},
+        'humidity': {'label': 'Humidity (%)', 'color': 'rgba(54, 162, 235, 1)', 'bgColor': 'rgba(54, 162, 235, 0.2)'},
+        'ph': {'label': 'pH Level', 'color': 'rgba(75, 192, 192, 1)', 'bgColor': 'rgba(75, 192, 192, 0.2)'},
+        'nitrogen': {'label': 'Nitrogen (mg/kg)', 'color': 'rgba(153, 102, 255, 1)', 'bgColor': 'rgba(153, 102, 255, 0.2)'},
+        'phosphorus': {'label': 'Phosphorus (mg/kg)', 'color': 'rgba(255, 159, 64, 1)', 'bgColor': 'rgba(255, 159, 64, 0.2)'},
+        'potassium': {'label': 'Potassium (mg/kg)', 'color': 'rgba(255, 205, 86, 1)', 'bgColor': 'rgba(255, 205, 86, 0.2)'},
+        'rainfall': {'label': 'Rainfall (mm)', 'color': 'rgba(201, 203, 207, 1)', 'bgColor': 'rgba(201, 203, 207, 0.2)'},
+    }
+
+    for param in parameters:
+        if param in param_config:
+            datasets[param] = {
+                'label': param_config[param]['label'],
+                'data': [],
+                'borderColor': param_config[param]['color'],
+                'backgroundColor': param_config[param]['bgColor'],
+                'tension': 0.4,
+                'fill': False,
+            }
+
+    # Process data points
+    for data in soil_data:
+        timestamp = data.created_at.strftime('%Y-%m-%d %H:%M')
+
+        for param in parameters:
+            if param in datasets:
+                value = getattr(data, param, None)
+                # Create data point with additional info for tooltips
+                data_point = {
+                    'x': timestamp,
+                    'y': float(value) if value is not None else None,
+                    'crop': data.prediction or 'N/A',
+                    'nitrogen': data.nitrogen,
+                    'phosphorus': data.phosphorus,
+                    'potassium': data.potassium,
+                    'time': data.created_at.strftime('%Y-%m-%d %H:%M:%S')
+                }
+                datasets[param]['data'].append(data_point)
+
+    # Sort data points by time for each dataset
+    for param in datasets:
+        datasets[param]['data'].sort(key=lambda dp: dp['time'])
+
+    # Prepare response data
+    chart_data = {
+        'datasets': list(datasets.values())
+    }
+
+    from django.http import JsonResponse
+    return JsonResponse(chart_data)
