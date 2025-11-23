@@ -133,6 +133,105 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                     Divider(height: 1),
                     _buildSettingTile(
+                      'Meet Our Team',
+                      'See the people behind the app',
+                      Icons.groups,
+                      Icon(Icons.arrow_forward_ios,
+                          size: 16, color: Colors.grey),
+                      onTap: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => Dialog(
+                            backgroundColor: Colors.transparent,
+                            child:
+                                LayoutBuilder(builder: (context, constraints) {
+                              final maxHeight =
+                                  MediaQuery.of(context).size.height * 0.8;
+                              return Container(
+                                constraints: BoxConstraints(
+                                  maxHeight: maxHeight,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.green[800],
+                                  borderRadius: BorderRadius.circular(24),
+                                ),
+                                padding: EdgeInsets.all(32),
+                                child: SingleChildScrollView(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Text(
+                                            'MEET OUR TEAM',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 26,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          Spacer(),
+                                          Icon(Icons.eco,
+                                              color: Colors.lightGreenAccent,
+                                              size: 30),
+                                        ],
+                                      ),
+                                      SizedBox(height: 28),
+                                      Wrap(
+                                        spacing: 36,
+                                        runSpacing: 30,
+                                        alignment: WrapAlignment.spaceEvenly,
+                                        children: [
+                                          _buildTeamMember(
+                                            name: 'ROGER MACARAEG',
+                                            title:
+                                                'Lead Developer and System Architect',
+                                            image: 'assets/profile/roger.png',
+                                          ),
+                                          _buildTeamMember(
+                                            name: 'DHEA CHARISSED BARTE',
+                                            title:
+                                                'UX/UI Designer and Frontend Developer',
+                                            image: 'assets/profile/dhea.jpg',
+                                          ),
+                                          _buildTeamMember(
+                                            name: 'CARL IVAN ALATAN',
+                                            title:
+                                                'Project Lead and Data Scientist',
+                                            image: 'assets/profile/carl.jpg',
+                                          ),
+                                          _buildTeamMember(
+                                            name: 'CHARLES EMMANUEL BENITEZ',
+                                            title:
+                                                'Backend Developer and Database Specialist',
+                                            image: 'assets/profile/charles.jpg',
+                                          ),
+                                        ],
+                                      ),
+                                      SizedBox(height: 16),
+                                      Align(
+                                        alignment: Alignment.centerRight,
+                                        child: TextButton(
+                                          onPressed: () =>
+                                              Navigator.of(context).pop(),
+                                          child: Text('Close',
+                                              style: TextStyle(
+                                                  color: Colors.white)),
+                                        ),
+                                      )
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }),
+                          ),
+                        );
+                      },
+                    ),
+                    Divider(height: 1),
+                    _buildSettingTile(
                       'Help',
                       'How to use the soil sensor and app',
                       Icons.help,
@@ -245,4 +344,38 @@ class _SettingsPageState extends State<SettingsPage> {
       onTap: onTap,
     );
   }
+}
+
+Widget _buildTeamMember(
+    {required String name, required String title, required String image}) {
+  return Column(
+    children: [
+      CircleAvatar(
+        backgroundColor: Colors.white,
+        radius: 42,
+        backgroundImage: AssetImage(image),
+        onBackgroundImageError: (exception, stackTrace) {},
+      ),
+      SizedBox(height: 10),
+      Text(
+        name,
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 15,
+          letterSpacing: 1.0,
+        ),
+        textAlign: TextAlign.center,
+      ),
+      SizedBox(height: 4),
+      Text(
+        title,
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+        ),
+        textAlign: TextAlign.center,
+      ),
+    ],
+  );
 }

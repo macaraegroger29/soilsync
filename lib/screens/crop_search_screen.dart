@@ -33,6 +33,9 @@ class _CropSearchScreenState extends State<CropSearchScreen> {
     'mango',
     'grapes',
     'watermelon',
+    'pakwan',
+    'talong',
+    'onion',
     'muskmelon',
     'apple',
     'orange',
@@ -102,6 +105,11 @@ class _CropSearchScreenState extends State<CropSearchScreen> {
       'mango': 'Tropical fruit tree, requires good drainage',
       'grapes': 'Vine fruit, requires specific soil conditions',
       'watermelon': 'Summer fruit, requires sandy soil',
+      'pakwan':
+          'Watermelon (alternate name), summer fruit, requires sandy soil',
+      'talong':
+          'Eggplant vegetable, requires well-drained soil and warm climate',
+      'onion': 'Bulb vegetable, prefers sandy-loam soil and moderate climate',
       'muskmelon': 'Melon crop, requires warm climate',
       'apple': 'Temperate fruit tree, requires cold winters',
       'orange': 'Citrus fruit, requires subtropical climate',
@@ -243,6 +251,9 @@ class _CropSearchScreenState extends State<CropSearchScreen> {
       'pomegranate': 'assets/icons/pomegranate.png',
       'rice': 'assets/icons/rice.png',
       'watermelon': 'assets/icons/watermelon.png',
+      'pakwan': 'assets/icons/pakwan.png',
+      'talong': 'assets/icons/talong.png',
+      'onion': 'assets/icons/sibuyas.png',
     };
     return cropIconMap[normalizedName] ?? 'assets/icons/rice.png';
   }

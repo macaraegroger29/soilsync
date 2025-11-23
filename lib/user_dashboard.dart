@@ -1640,7 +1640,8 @@ class _UserDashboardState extends State<UserDashboard>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    crop['label']?.toString() ?? 'Unknown',
+                                    _convertCropIdToName(
+                                        crop['label']?.toString() ?? 'Unknown'),
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       color: Colors.green[900],

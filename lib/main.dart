@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:soilsync/screens/splash_screen.dart';
 import 'package:soilsync/screens/enhanced_login_screen.dart';
 import 'package:soilsync/screens/enhanced_register_screen.dart';
 import 'package:soilsync/user_dashboard.dart';
@@ -74,13 +75,14 @@ class MyApp extends StatelessWidget {
           fillColor: Colors.grey[50],
         ),
       ),
-      initialRoute: '/login',
+      initialRoute: '/splash',
       routes: {
+        '/splash': (context) => const SplashScreen(),
         '/login': (context) => const EnhancedLoginScreen(),
         '/register': (context) => const EnhancedRegisterScreen(),
         '/dashboard': (context) => const UserDashboard(),
       },
-      home: const EnhancedLoginScreen(),
+      home: const SplashScreen(),
     );
   }
 }

@@ -105,6 +105,7 @@ flutter:
     - assets/locations/
     - assets/icons/
     - assets/images/
+    - assets/profile/
 
 # Flutter Launcher Icons configuration
 flutter_launcher_icons:
