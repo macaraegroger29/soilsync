@@ -3,6 +3,10 @@ import 'package:flutter/foundation.dart';
 import 'package:soilsync/screens/splash_screen.dart';
 import 'package:soilsync/screens/enhanced_login_screen.dart';
 import 'package:soilsync/screens/enhanced_register_screen.dart';
+import 'package:soilsync/screens/grid_sampling_screen.dart';
+import 'package:soilsync/screens/grid_area_input_screen.dart';
+import 'package:soilsync/screens/grid_sampling_complete_screen.dart';
+import 'package:soilsync/screens/grid_sampling_result_screen.dart';
 import 'package:soilsync/user_dashboard.dart';
 
 void main() {
@@ -81,6 +85,24 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const EnhancedLoginScreen(),
         '/register': (context) => const EnhancedRegisterScreen(),
         '/dashboard': (context) => const UserDashboard(),
+        '/gridSampling': (context) => const GridSamplingScreen(),
+        '/gridAreaInput': (context) =>
+            const GridAreaInputScreen(areaName: 'Area'),
+        '/gridSamplingComplete': (context) =>
+            const GridSamplingCompleteScreen(),
+        '/gridSamplingResult': (context) => GridSamplingResultScreen(
+              cropName: 'Recommended Crop: Rice',
+              cropImagePath: 'assets/icons/rice.png',
+              averages: const {
+                'N': 0,
+                'P': 0,
+                'K': 0,
+                'pH': 0,
+                'temperature': 0,
+                'humidity': 0,
+                'rainfall': 0,
+              },
+            ),
       },
       home: const SplashScreen(),
     );
