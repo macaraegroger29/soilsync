@@ -179,36 +179,38 @@ class _SettingsPageState extends State<SettingsPage> {
                                         ],
                                       ),
                                       SizedBox(height: 28),
-                                      Wrap(
-                                        spacing: 36,
-                                        runSpacing: 30,
-                                        alignment: WrapAlignment.spaceEvenly,
-                                        children: [
-                                          _buildTeamMember(
-                                            name: 'ROGER MACARAEG',
-                                            title:
-                                                'Lead Developer and System Architect',
-                                            image: 'assets/profile/roger.png',
-                                          ),
-                                          _buildTeamMember(
-                                            name: 'DHEA CHARISSED BARTE',
-                                            title:
-                                                'UX/UI Designer and Frontend Developer',
-                                            image: 'assets/profile/dhea.jpg',
-                                          ),
-                                          _buildTeamMember(
-                                            name: 'CARL IVAN ALATAN',
-                                            title:
-                                                'Project Lead and Data Scientist',
-                                            image: 'assets/profile/carl.jpg',
-                                          ),
-                                          _buildTeamMember(
-                                            name: 'CHARLES EMMANUEL BENITEZ',
-                                            title:
-                                                'Backend Developer and Database Specialist',
-                                            image: 'assets/profile/charles.jpg',
-                                          ),
-                                        ],
+                                      Center(
+                                        child: Wrap(
+                                          spacing: 36,
+                                          runSpacing: 30,
+                                          alignment: WrapAlignment.center,
+                                          children: [
+                                            _buildTeamMember(
+                                              name: 'ROGER MACARAEG',
+                                              title:
+                                                  'Lead Developer and System Architect',
+                                              image: 'assets/profile/roger.png',
+                                            ),
+                                            _buildTeamMember(
+                                              name: 'DHEA CHARISSED BARTE',
+                                              title:
+                                                  'UX/UI Designer and Frontend Developer',
+                                              image: 'assets/profile/dhea.jpg',
+                                            ),
+                                            _buildTeamMember(
+                                              name: 'CARL IVAN ALATAN',
+                                              title:
+                                                  'Project Lead and Data Scientist',
+                                              image: 'assets/profile/carl.jpg',
+                                            ),
+                                            _buildTeamMember(
+                                              name: 'CHARLES EMMANUEL BENITEZ',
+                                              title:
+                                                  'Backend Developer and Database Specialist',
+                                              image: 'assets/profile/charles.jpg',
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                       SizedBox(height: 16),
                                       Align(

@@ -185,7 +185,7 @@ def database_dashboard(request):
         crop_data.append(sum(crop_counts.get(crop, 0) for crop in crop_counts if crop not in crop_labels[:-1]))
 
     # Get recent soil readings with timestamps for tracking
-    recent_soil_readings = api_soil_data.order_by('-created_at')[:10]
+    recent_soil_readings = api_soil_data.order_by('-created_at')[:5]
 
     profile_name = request.user.get_full_name() or request.user.username if request.user.is_authenticated else 'Guest'
     profile_email = request.user.email if request.user.is_authenticated else ''
@@ -240,6 +240,107 @@ def crop_recommendations_table(request):
     })
 
 @login_required(login_url='dashboard_login')
+def edit_crop_recommendation(request, pk):
+    """Edit a crop recommendation"""
+    if not (request.user.role == 'admin' or request.user.is_staff):
+        messages.error(request, 'Access denied. Admin privileges required.')
+        return redirect('crop_recommendations_table')
+
+    recommendation = get_object_or_404(CropRecommendation, pk=pk)
+
+    if request.method == 'POST':
+        recommended_crop = request.POST.get('recommended_crop')
+        confidence_score = request.POST.get('confidence_score')
+        additional_info = request.POST.get('additional_info', '')
+
+        if recommended_crop and confidence_score:
+            try:
+                recommendation.recommended_crop = recommended_crop
+                recommendation.confidence_score = float(confidence_score)
+                recommendation.additional_info = additional_info
+                recommendation.save()
+
+                messages.success(request, f'Crop recommendation updated successfully!')
+                return redirect('crop_recommendations_table')
+            except Exception as e:
+                messages.error(request, 'An error occurred while updating the recommendation.')
+        else:
+            messages.error(request, 'Please fill in all required fields!')
+
+    return render(request, 'dashboard/edit_crop_recommendation.html', {
+        'recommendation': recommendation,
+    })
+
+@login_required(login_url='dashboard_login')
+def delete_crop_recommendation(request, pk):
+    """Delete a crop recommendation"""
+    if not (request.user.role == 'admin' or request.user.is_staff):
+        messages.error(request, 'Access denied. Admin privileges required.')
+        return redirect('crop_recommendations_table')
+
+    recommendation = get_object_or_404(CropRecommendation, pk=pk)
+
+    if request.method == 'POST':
+        crop_name = recommendation.recommended_crop
+        recommendation.delete()
+        messages.success(request, f'Crop recommendation for "{crop_name}" deleted successfully!')
+        return redirect('crop_recommendations_table')
+
+    return render(request, 'dashboard/delete_crop_recommendation.html', {
+        'recommendation': recommendation,
+    })
+
+@login_required(login_url='dashboard_login')
+def edit_api_soil_data(request, pk):
+    """Edit API soil data"""
+    if not (request.user.role == 'admin' or request.user.is_staff):
+        messages.error(request, 'Access denied. Admin privileges required.')
+        return redirect('api_soil_data_table')
+
+    api_data = get_object_or_404(APISoilData, pk=pk)
+
+    if request.method == 'POST':
+        prediction = request.POST.get('prediction')
+        confidence = request.POST.get('confidence')
+
+        if prediction:
+            try:
+                api_data.prediction = prediction
+                if confidence:
+                    api_data.confidence = float(confidence)
+                api_data.save()
+
+                messages.success(request, f'API soil data updated successfully!')
+                return redirect('crop_recommendations_table')
+            except Exception as e:
+                messages.error(request, 'An error occurred while updating the API data.')
+        else:
+            messages.error(request, 'Please fill in all required fields!')
+
+    return render(request, 'dashboard/edit_api_soil_data.html', {
+        'api_data': api_data,
+    })
+
+@login_required(login_url='dashboard_login')
+def delete_api_soil_data(request, pk):
+    """Delete API soil data"""
+    if not (request.user.role == 'admin' or request.user.is_staff):
+        messages.error(request, 'Access denied. Admin privileges required.')
+        return redirect('api_soil_data_table')
+
+    api_data = get_object_or_404(APISoilData, pk=pk)
+
+    if request.method == 'POST':
+        prediction = api_data.prediction
+        api_data.delete()
+        messages.success(request, f'API soil data for "{prediction}" deleted successfully!')
+        return redirect('crop_recommendations_table')
+
+    return render(request, 'dashboard/delete_api_soil_data.html', {
+        'api_data': api_data,
+    })
+
+@login_required(login_url='dashboard_login')
 def combined_sensors_crop_recommendations(request):
     """Combined view for sensors and crop recommendations"""
     sensors = SensorDevice.objects.all().order_by('-date_installed')
@@ -277,7 +378,79 @@ def activity_logs_table(request):
 @login_required(login_url='dashboard_login')
 def user_settings(request):
     """User settings page"""
+    if request.method == 'POST':
+        # Handle account information update
+        email = request.POST.get('email')
+        first_name = request.POST.get('first_name', '')
+        last_name = request.POST.get('last_name', '')
+        organization = request.POST.get('organization', '')
+
+        if email:
+            try:
+                # Check if email already exists (excluding current user)
+                if User.objects.exclude(pk=request.user.pk).filter(email=email).exists():
+                    messages.error(request, 'Email already exists!')
+                else:
+                    request.user.email = email
+                    request.user.first_name = first_name
+                    request.user.last_name = last_name
+                    if hasattr(request.user, 'userprofile'):
+                        request.user.userprofile.organization = organization
+                        request.user.userprofile.save()
+                    request.user.save()
+                    messages.success(request, 'Account information updated successfully!')
+            except Exception as e:
+                messages.error(request, 'An error occurred while updating your information.')
+        else:
+            messages.error(request, 'Email is required!')
+
+        return redirect('user_settings')
+
     return render(request, 'dashboard/settings.html')
+
+@login_required(login_url='dashboard_login')
+def change_password(request):
+    """Change user password"""
+    if request.method == 'POST':
+        current_password = request.POST.get('current_password')
+        new_password = request.POST.get('new_password')
+        confirm_password = request.POST.get('confirm_password')
+
+        # Validate current password
+        if not request.user.check_password(current_password):
+            messages.error(request, 'Current password is incorrect!')
+            return redirect('user_settings')
+
+        # Validate new password
+        if len(new_password) < 8:
+            messages.error(request, 'New password must be at least 8 characters long!')
+            return redirect('user_settings')
+
+        # Check if passwords match
+        if new_password != confirm_password:
+            messages.error(request, 'New passwords do not match!')
+            return redirect('user_settings')
+
+        # Update password
+        try:
+            request.user.set_password(new_password)
+            request.user.save()
+            messages.success(request, 'Password changed successfully! Please log in again.')
+            logout(request)
+            return redirect('dashboard_login')
+        except Exception as e:
+            messages.error(request, 'An error occurred while changing your password.')
+            return redirect('user_settings')
+
+    return redirect('user_settings')
+
+@login_required(login_url='dashboard_login')
+def toggle_2fa(request):
+    """Toggle two-factor authentication"""
+    # For now, just show a message that 2FA is not implemented yet
+    # In a real implementation, you would integrate with a 2FA library like django-otp
+    messages.info(request, 'Two-factor authentication feature is coming soon!')
+    return redirect('user_settings')
 
 @login_required(login_url='dashboard_login')
 def user_profile(request):
@@ -292,8 +465,11 @@ def user_profile(request):
         api_soil_data = APISoilData.objects.filter(user=request.user).order_by('-created_at')[:5]  # Recent 5 records
         api_soil_data_count = APISoilData.objects.filter(user=request.user).count()
 
-    # Get user's crop recommendations count
-    recommendations_count = CropRecommendation.objects.filter(soil_data__user=request.user).count()
+    # Get user's crop recommendations count (traditional + API)
+    if is_admin:
+        recommendations_count = CropRecommendation.objects.all().count() + APISoilData.objects.all().count()
+    else:
+        recommendations_count = CropRecommendation.objects.filter(soil_data__user=request.user).count() + APISoilData.objects.filter(user=request.user).count()
 
     # Get recent activity (API submissions)
     recent_activity = []
@@ -321,14 +497,14 @@ def users_table(request):
     if not (request.user.role == 'admin' or request.user.is_staff):
         messages.error(request, 'Access denied. Admin privileges required.')
         return redirect('database_dashboard')
-    
+
     # Handle user creation
     if request.method == 'POST' and 'create_user' in request.POST:
         username = request.POST.get('username')
         email = request.POST.get('email')
         password = request.POST.get('password')
         role = request.POST.get('role', 'farmer')
-        
+
         if username and email and password:
             try:
                 user = User.objects.create_user(
@@ -343,11 +519,30 @@ def users_table(request):
                 messages.error(request, 'Username or email already exists!')
         else:
             messages.error(request, 'Please fill in all required fields!')
-    
-    users = User.objects.all().order_by('username')
+
+    # Handle filtering
+    role_filter = request.GET.get('role', 'all')
+    if role_filter == 'all':
+        users = User.objects.all().order_by('username')
+    else:
+        users = User.objects.filter(role=role_filter).order_by('username')
+
+    # Add display_role to each user for template rendering
+    for user in users:
+        user.display_role = user.role.replace('_', ' ').title() if user.role else 'Farmer'
+
+    # Count users by role for summary cards
+    total_users = User.objects.count()
+    farmer_count = User.objects.filter(role='farmer').count()
+    home_grower_count = User.objects.filter(role='home_grower').count()
+
     return render(request, 'dashboard/users_table.html', {
         'users': users,
         'is_admin': True,  # Always true since we checked above
+        'role_filter': role_filter,
+        'total_users': total_users,
+        'farmer_count': farmer_count,
+        'home_grower_count': home_grower_count,
     })
 
 @login_required(login_url='dashboard_login')
@@ -445,9 +640,12 @@ def api_soil_data_table(request):
     if is_admin:
         # Admins see all data
         api_soil_data = APISoilData.objects.select_related('user').all().order_by('-created_at')
+        # Get all users for the filter dropdown
+        all_users = User.objects.all().order_by('username')
     else:
         # Normal users see only their own data
         api_soil_data = APISoilData.objects.select_related('user').filter(user=request.user).order_by('-created_at')
+        all_users = None
 
     # Calculate averages from the actual data
     if api_soil_data.exists():
@@ -460,6 +658,7 @@ def api_soil_data_table(request):
     return render(request, 'dashboard/api_soil_data_table.html', {
         'api_soil_data': api_soil_data,
         'is_admin': is_admin,
+        'all_users': all_users,
         'avg_ph': avg_ph,
         'avg_humidity': avg_humidity,
     })
@@ -469,7 +668,15 @@ def export_api_soil_data_csv(request):
     """Export API soil data to CSV"""
     is_admin = request.user.role == 'admin' or request.user.is_staff
 
-    if is_admin:
+    # Check for user filter parameter
+    user_id = request.GET.get('user_id')
+    if is_admin and user_id and user_id != 'all':
+        try:
+            user_obj = User.objects.get(id=user_id)
+            api_soil_data = APISoilData.objects.select_related('user').filter(user=user_obj).order_by('-created_at')
+        except User.DoesNotExist:
+            api_soil_data = APISoilData.objects.select_related('user').all().order_by('-created_at')
+    elif is_admin:
         api_soil_data = APISoilData.objects.select_related('user').all().order_by('-created_at')
     else:
         api_soil_data = APISoilData.objects.select_related('user').filter(user=request.user).order_by('-created_at')
@@ -502,7 +709,15 @@ def export_api_soil_data_pdf(request):
     """Export API soil data to PDF"""
     is_admin = request.user.role == 'admin' or request.user.is_staff
 
-    if is_admin:
+    # Check for user filter parameter
+    user_id = request.GET.get('user_id')
+    if is_admin and user_id and user_id != 'all':
+        try:
+            user_obj = User.objects.get(id=user_id)
+            api_soil_data = APISoilData.objects.select_related('user').filter(user=user_obj).order_by('-created_at')
+        except User.DoesNotExist:
+            api_soil_data = APISoilData.objects.select_related('user').all().order_by('-created_at')
+    elif is_admin:
         api_soil_data = APISoilData.objects.select_related('user').all().order_by('-created_at')
     else:
         api_soil_data = APISoilData.objects.select_related('user').filter(user=request.user).order_by('-created_at')
@@ -612,20 +827,22 @@ def soil_parameter_trends(request):
 
     # Process data points
     for data in soil_data:
-        timestamp = data.created_at.strftime('%Y-%m-%d %H:%M')
+        # Use Django's timezone-aware datetime (already converted to TIME_ZONE setting)
+        # and format as ISO 8601 for Chart.js - ensure it's in the correct timezone
+        # Convert to Asia/Manila timezone explicitly for consistency
+        import pytz
+        manila_tz = pytz.timezone('Asia/Manila')
+        local_time = data.created_at.astimezone(manila_tz)
+        timestamp = local_time.isoformat()
 
         for param in parameters:
             if param in datasets:
                 value = getattr(data, param, None)
-                # Create data point with additional info for tooltips
+                # Create data point with only the relevant value for this parameter
                 data_point = {
                     'x': timestamp,
                     'y': float(value) if value is not None else None,
-                    'crop': data.prediction or 'N/A',
-                    'nitrogen': data.nitrogen,
-                    'phosphorus': data.phosphorus,
-                    'potassium': data.potassium,
-                    'time': data.created_at.strftime('%Y-%m-%d %H:%M:%S')
+                    'time': local_time.strftime('%b %d, %Y %H:%M')  # Match table format
                 }
                 datasets[param]['data'].append(data_point)
 

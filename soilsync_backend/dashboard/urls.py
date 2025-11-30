@@ -1,10 +1,12 @@
 from django.urls import path
 from .views import (
     dashboard_login, dashboard_logout, dashboard_register, database_dashboard,
-    crop_recommendations_table, system_feedback_table,
+    crop_recommendations_table, edit_crop_recommendation, delete_crop_recommendation,
+    edit_api_soil_data, delete_api_soil_data, system_feedback_table,
     activity_logs_table, users_table, user_settings, user_profile,
     edit_user, delete_user, toggle_user_status, api_soil_data_table,
-    export_api_soil_data_csv, export_api_soil_data_pdf, soil_parameter_trends
+    export_api_soil_data_csv, export_api_soil_data_pdf, soil_parameter_trends,
+    change_password, toggle_2fa
 )
 from .api_views import (
     receive_prediction, get_predictions, get_predictions_realtime,
@@ -18,13 +20,17 @@ urlpatterns = [
     path('login/', dashboard_login, name='dashboard_login'),
     path('logout/', dashboard_logout, name='dashboard_logout'),
     path('register/', dashboard_register, name='dashboard_register'),
-    
+
     # Dashboard pages
     path('', database_dashboard, name='database_dashboard'),
     path('api-soil-data/', api_soil_data_table, name='api_soil_data_table'),
     path('api-soil-data/export/csv/', export_api_soil_data_csv, name='export_api_soil_data_csv'),
     path('api-soil-data/export/pdf/', export_api_soil_data_pdf, name='export_api_soil_data_pdf'),
     path('crop-recommendations/', crop_recommendations_table, name='crop_recommendations_table'),
+    path('edit-crop-recommendation/<int:pk>/', edit_crop_recommendation, name='edit_crop_recommendation'),
+    path('delete-crop-recommendation/<int:pk>/', delete_crop_recommendation, name='delete_crop_recommendation'),
+    path('edit-api-soil-data/<int:pk>/', edit_api_soil_data, name='edit_api_soil_data'),
+    path('delete-api-soil-data/<int:pk>/', delete_api_soil_data, name='delete_api_soil_data'),
     path('system-feedback/', system_feedback_table, name='system_feedback_table'),
     path('activity-logs/', activity_logs_table, name='activity_logs_table'),
     path('users/', users_table, name='users_table'),
@@ -32,8 +38,10 @@ urlpatterns = [
     path('toggle-user-status/<int:pk>/', toggle_user_status, name='toggle_user_status'),
     path('delete-user/<int:pk>/', delete_user, name='delete_user'),
     path('settings/', user_settings, name='user_settings'),
+    path('change-password/', change_password, name='change_password'),
+    path('toggle-2fa/', toggle_2fa, name='toggle_2fa'),
     path('profile/', user_profile, name='user_profile'),
-    
+
     # API endpoints for Flutter app
     path('api/stats/', dashboard_stats, name='dashboard_stats_api'),
     path('api/predictions/', receive_prediction, name='receive_prediction'),

@@ -11,7 +11,7 @@
 <body class="bg-gray-100">
     <!-- Navigation - Same as Dashboard -->
     <nav class="bg-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
                     <div class="flex-shrink-0 flex items-center">
@@ -52,7 +52,7 @@
         </div>
     </nav>
 
-    <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <div class="mx-auto py-6 sm:px-6 lg:px-8">
         <!-- Page Header - Same as Dashboard -->
         <div class="px-4 py-6 sm:px-0">
             <div class="border-b border-gray-200 pb-5">
@@ -103,11 +103,13 @@
                     </div>
                     <div>
                         <label for="role" class="block text-sm font-medium text-gray-700 mb-1">Role</label>
-                        <select id="role" name="role" 
+                        <select id="role" name="role"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                            {% if is_admin %}
+                            <option value="admin">Administrator</option>
+                            {% endif %}
                             <option value="farmer">Farmer</option>
-                            <option value="technician">Technician</option>
-                            <option value="admin">Admin</option>
+                            <option value="home_grower">Home Grower</option>
                         </select>
                     </div>
                     <div class="md:col-span-2 lg:col-span-4">
@@ -120,17 +122,40 @@
             </div>
         </div>
 
+        <!-- Filter Buttons -->
+        <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-6">
+            <div class="px-4 py-5 sm:px-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
+                    <i class="fas fa-filter text-blue-500 mr-2"></i>Filter Users by Role
+                </h3>
+                <div class="flex flex-wrap gap-2">
+                    <a href="{% url 'users_table' %}"
+                       class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium {% if role_filter == 'all' %}bg-blue-50 border-blue-500 text-blue-700{% else %}text-gray-700 bg-white hover:bg-gray-50{% endif %}">
+                        <i class="fas fa-users mr-2"></i>All Users ({{ total_users }})
+                    </a>
+                    <a href="{% url 'users_table' %}?role=farmer"
+                       class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium {% if role_filter == 'farmer' %}bg-green-50 border-green-500 text-green-700{% else %}text-gray-700 bg-white hover:bg-gray-50{% endif %}">
+                        <i class="fas fa-tractor mr-2"></i>Farmers ({{ farmer_count }})
+                    </a>
+                    <a href="{% url 'users_table' %}?role=home_grower"
+                       class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium {% if role_filter == 'home_grower' %}bg-yellow-50 border-yellow-500 text-yellow-700{% else %}text-gray-700 bg-white hover:bg-gray-50{% endif %}">
+                        <i class="fas fa-leaf mr-2"></i>Home Growers ({{ home_grower_count }})
+                    </a>
+                </div>
+            </div>
+        </div>
+
         <!-- Users Summary Cards - Dashboard Style -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <div class="bg-white shadow overflow-hidden sm:rounded-lg">
                 <div class="px-4 py-5 sm:p-6">
                     <div class="flex items-center">
-                        <div class="flex-shrink-0 bg-green-500 rounded-md p-3">
+                        <div class="flex-shrink-0 bg-blue-500 rounded-md p-3">
                             <i class="fas fa-users text-white text-xl"></i>
                         </div>
                         <div class="ml-4">
                             <dt class="text-sm font-medium text-gray-500 truncate">Total Users</dt>
-                            <dd class="text-2xl font-semibold text-gray-900">{{ users|length }}</dd>
+                            <dd class="text-2xl font-semibold text-gray-900">{{ total_users }}</dd>
                         </div>
                     </div>
                 </div>
@@ -139,12 +164,12 @@
             <div class="bg-white shadow overflow-hidden sm:rounded-lg">
                 <div class="px-4 py-5 sm:p-6">
                     <div class="flex items-center">
-                        <div class="flex-shrink-0 bg-blue-500 rounded-md p-3">
-                            <i class="fas fa-user-tie text-white text-xl"></i>
+                        <div class="flex-shrink-0 bg-green-500 rounded-md p-3">
+                            <i class="fas fa-tractor text-white text-xl"></i>
                         </div>
                         <div class="ml-4">
-                            <dt class="text-sm font-medium text-gray-500 truncate">Admins</dt>
-                            <dd class="text-2xl font-semibold text-gray-900">{{ users|length|add:"-5" }}</dd>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Farmers</dt>
+                            <dd class="text-2xl font-semibold text-gray-900">{{ farmer_count }}</dd>
                         </div>
                     </div>
                 </div>
@@ -154,15 +179,17 @@
                 <div class="px-4 py-5 sm:p-6">
                     <div class="flex items-center">
                         <div class="flex-shrink-0 bg-yellow-500 rounded-md p-3">
-                            <i class="fas fa-user-friends text-white text-xl"></i>
+                            <i class="fas fa-leaf text-white text-xl"></i>
                         </div>
                         <div class="ml-4">
-                            <dt class="text-sm font-medium text-gray-500 truncate">Active Users</dt>
-                            <dd class="text-2xl font-semibold text-gray-900">{{ users|length }}</dd>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Home Growers</dt>
+                            <dd class="text-2xl font-semibold text-gray-900">{{ home_grower_count }}</dd>
                         </div>
                     </div>
                 </div>
             </div>
+
+
         </div>
 
         <!-- Users Table - Dashboard Style -->
@@ -206,11 +233,11 @@
                                     <div class="text-sm text-gray-900">{{ user.email|default:"-" }}</div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
                                                {% if user.role == 'admin' %}bg-red-100 text-red-800
                                                {% elif user.role == 'technician' %}bg-blue-100 text-blue-800
                                                {% else %}bg-green-100 text-green-800{% endif %}">
-                                        {{ user.role|default:"farmer"|capfirst }}
+                                        {{ user.display_role }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">

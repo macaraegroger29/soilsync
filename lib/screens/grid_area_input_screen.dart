@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:soilsync/services/sensor_bus.dart';
+import 'package:soilsync/services/grid_sampling_storage.dart';
 
 class GridAreaInputScreen extends StatefulWidget {
   final String areaName;
@@ -19,7 +20,7 @@ class _GridAreaInputScreenState extends State<GridAreaInputScreen> {
   final _formKey = GlobalKey<FormState>();
   final Map<String, TextEditingController> _controllers = {};
   StreamSubscription<SensorReading>? _sensorSubscription;
-  bool _isAutoCollectEnabled = true;
+  bool _isAutoCollectEnabled = false;
   DateTime? _lastAutoCollectTime;
   SensorReading? _latestReading;
 
@@ -86,10 +87,32 @@ class _GridAreaInputScreenState extends State<GridAreaInputScreen> {
     super.dispose();
   }
 
-  void _saveData() {
+  void _saveData() async {
     if (_formKey.currentState?.validate() != true) return;
-    // For now just pop with success flag; integration with backend can be added later.
-    Navigator.pop(context, true);
+
+    // Extract area number from area name (e.g., "Area 1" -> 1)
+    final areaNumber = int.tryParse(widget.areaName.split(' ').last) ?? 1;
+
+    // Create GridAreaData object
+    final areaData = GridAreaData(
+      areaNumber: areaNumber,
+      nitrogen: double.tryParse(_controllers['nitrogen']!.text) ?? 0,
+      phosphorus: double.tryParse(_controllers['phosphorus']!.text) ?? 0,
+      potassium: double.tryParse(_controllers['potassium']!.text) ?? 0,
+      ph: double.tryParse(_controllers['ph']!.text) ?? 7,
+      temperature: double.tryParse(_controllers['temperature']!.text) ?? 25,
+      humidity: double.tryParse(_controllers['humidity']!.text) ?? 50,
+      rainfall: double.tryParse(_controllers['rainfall']!.text) ?? 100,
+    );
+
+    // Save to storage
+    final storage = GridSamplingStorage();
+    await storage.saveAreaData(areaData);
+
+    // Pop with success flag
+    if (mounted) {
+      Navigator.pop(context, true);
+    }
   }
 
   void _onSensorReading(SensorReading reading) {

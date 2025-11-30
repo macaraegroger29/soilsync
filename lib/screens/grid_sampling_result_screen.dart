@@ -18,7 +18,7 @@ class GridSamplingResultScreen extends StatelessWidget {
       _AverageField('Nitrogen', 'N', 'mg/kg'),
       _AverageField('Phosphorus', 'P', 'mg/kg'),
       _AverageField('Potassium', 'K', 'mg/kg'),
-      _AverageField('pH', 'pH', ''),
+      _AverageField('pH', 'ph', ''),
       _AverageField('Temperature', 'temperature', '°C'),
       _AverageField('Humidity', 'humidity', '%'),
       _AverageField('Rainfall', 'rainfall', 'mm'),

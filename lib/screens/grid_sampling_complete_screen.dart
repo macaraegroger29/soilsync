@@ -1,30 +1,121 @@
 import 'package:flutter/material.dart';
 import 'grid_sampling_result_screen.dart';
+import 'package:soilsync/services/grid_sampling_storage.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import '../config.dart';
 
-class GridSamplingCompleteScreen extends StatelessWidget {
+class GridSamplingCompleteScreen extends StatefulWidget {
   const GridSamplingCompleteScreen({super.key});
 
-  Map<String, double> _sampleAverages() {
-    return {
-      'N': 85.0,
-      'P': 42.0,
-      'K': 60.0,
-      'pH': 6.4,
-      'temperature': 28.0,
-      'humidity': 58.0,
-      'rainfall': 12.0,
-    };
+  @override
+  State<GridSamplingCompleteScreen> createState() => _GridSamplingCompleteScreenState();
+}
+
+class _GridSamplingCompleteScreenState extends State<GridSamplingCompleteScreen> {
+  Map<String, double> _averages = {};
+  String _recommendedCrop = 'Loading...';
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDataAndCalculateRecommendation();
   }
+
+  Future<void> _loadDataAndCalculateRecommendation() async {
+    try {
+      final storage = GridSamplingStorage();
+      final averages = await storage.calculateAverages();
+
+      setState(() {
+        _averages = averages;
+      });
+
+      // Get recommendation using the same API as normal crop recommendation
+      final recommendedCrop = await _getCropRecommendationFromAPI(averages);
+
+      setState(() {
+        _recommendedCrop = recommendedCrop;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _recommendedCrop = 'Error calculating recommendation';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<String> _getCropRecommendationFromAPI(Map<String, double> averages) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      if (token == null) {
+        throw Exception('No authentication token found');
+      }
+
+      final baseUrl = await AppConfig.getBaseUrl();
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/predict/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'nitrogen': averages['N'] ?? 0,
+          'phosphorus': averages['P'] ?? 0,
+          'potassium': averages['K'] ?? 0,
+          'temperature': averages['temperature'] ?? 25,
+          'humidity': averages['humidity'] ?? 50,
+          'ph': averages['ph'] ?? 7,
+          'rainfall': averages['rainfall'] ?? 100,
+        }),
+      );
+
+      if (response.statusCode == 201) {
+        final data = json.decode(response.body);
+        return data['prediction'] ?? 'Unknown Crop';
+      } else {
+        throw Exception('Failed to get crop recommendation: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error: $e');
+    }
+  }
+
+
 
   String _getCropImage(String crop) {
     final normalized = crop.toLowerCase();
     final map = {
       'rice': 'assets/icons/rice.png',
-      'maize': 'assets/icons/corn.png',
       'corn': 'assets/icons/corn.png',
       'banana': 'assets/icons/banana.png',
       'mango': 'assets/icons/mango.png',
       'coffee': 'assets/icons/coffee.png',
+      'wheat': 'assets/icons/wheat.png',
+      'grapes': 'assets/icons/grapes.png',
+      'kidneybeans': 'assets/icons/kidneybeans.png',
+      'cotton': 'assets/icons/cotton.png',
+      'coconut': 'assets/icons/coconut.png',
+      'muskmelon': 'assets/icons/muskmelon.png',
+      'apple': 'assets/icons/apple.png',
+      'black gram': 'assets/icons/blackgram.png',
+      'chickpea': 'assets/icons/chickpea.png',
+      'jute': 'assets/icons/jute.png',
+      'lentil': 'assets/icons/lentil.png',
+      'mothbeans': 'assets/icons/mothbeans.png',
+      'mung bean': 'assets/icons/mungbean.png',
+      'orange': 'assets/icons/orange.png',
+      'pakwan': 'assets/icons/pakwan.png',
+      'papaya': 'assets/icons/papaya.png',
+      'pigeonpeas': 'assets/icons/pigeonpeas.png',
+      'pomegranate': 'assets/icons/pomegranate.png',
+      'sibuyas': 'assets/icons/sibuyas.png',
+      'talong': 'assets/icons/talong.png',
+      'watermelon': 'assets/icons/watermelon.png',
     };
     return map[normalized] ?? 'assets/icons/rice.png';
   }
@@ -170,22 +261,24 @@ class GridSamplingCompleteScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 ElevatedButton.icon(
-                  onPressed: () {
+                  onPressed: _isLoading ? null : () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (_) => GridSamplingResultScreen(
-                          cropName: 'Recommended Crop: Rice',
-                          cropImagePath: _getCropImage('rice'),
-                          averages: _sampleAverages(),
+                          cropName: 'Recommended Crop: $_recommendedCrop',
+                          cropImagePath: _getCropImage(_recommendedCrop),
+                          averages: _averages,
                         ),
                       ),
                     );
                   },
                   icon: const Icon(Icons.auto_graph),
-                  label: const Text('Generate Final Recommendation'),
+                  label: _isLoading
+                      ? const Text('Calculating...')
+                      : const Text('Generate Final Recommendation'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green[700],
+                    backgroundColor: _isLoading ? Colors.grey : Colors.green[700],
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(

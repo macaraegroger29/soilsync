@@ -14,7 +14,7 @@
 <body class="bg-gray-100">
     <!-- Navigation -->
     <nav class="bg-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
                     <div class="flex-shrink-0 flex items-center">
@@ -57,7 +57,7 @@
         </div>
     </nav>
 
-    <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <div class="py-6 px-4 sm:px-6 lg:px-8">
         <!-- Page Header -->
         <div class="px-4 py-6 sm:px-0">
             <div class="border-b border-gray-200 pb-5">
@@ -65,12 +65,7 @@
                     <i class="fas fa-home mr-2 text-green-600"></i>Dashboard
                 </h1>
                 <p class="mt-2 text-sm text-gray-600">Manage and monitor your soil data and analytics</p>
-                <div class="flex items-center mt-1">
-                    <p class="text-xs text-gray-500" id="refresh-indicator">Page will refresh automatically in <span id="countdown">30</span> seconds</p>
-                    <button id="refresh-btn" class="ml-4 text-xs text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 px-2 py-1 rounded">
-                        <i class="fas fa-sync-alt mr-1"></i>Refresh Now
-                    </button>
-                </div>
+
             </div>
         </div>
 
@@ -87,7 +82,7 @@
         {% endif %}
 
         <!-- Dashboard Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div class="bg-white shadow overflow-hidden sm:rounded-lg">
                 <div class="px-4 py-5 sm:p-6">
                     <div class="flex items-center">
@@ -101,8 +96,6 @@
                     </div>
                 </div>
             </div>
-
-
 
             <div class="bg-white shadow overflow-hidden sm:rounded-lg">
                 <div class="px-4 py-5 sm:p-6">
@@ -134,7 +127,7 @@
         </div>
 
         <!-- Recent Activity Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div class="mb-8">
             <!-- Recent Crop Recommendations -->
             <div class="bg-white shadow overflow-hidden sm:rounded-lg">
                 <div class="px-4 py-5 sm:px-6">
@@ -193,8 +186,6 @@
                     </div>
                 </div>
             </div>
-
-
         </div>
 
         <!-- Charts Section -->
@@ -352,29 +343,6 @@
     </div>
 
     <script>
-        // Auto-refresh functionality
-        let countdown = 30;
-        let refreshTimeout;
-
-        function updateCountdown() {
-            document.getElementById('countdown').textContent = countdown;
-            countdown--;
-
-            if (countdown < 0) {
-                location.reload();
-            } else {
-                setTimeout(updateCountdown, 1000);
-            }
-        }
-
-        // Start the countdown
-        updateCountdown();
-
-        // Handle manual refresh button
-        document.getElementById('refresh-btn').addEventListener('click', function() {
-            location.reload();
-        });
-
         // Enhanced Interactive Crop Recommendations Chart
         const cropCtx = document.getElementById('cropChart').getContext('2d');
         const cropLabels = {{ crop_labels|default:"[]"|safe }};
@@ -400,7 +368,14 @@
                 datasets: [{
                     data: cropData,
                     backgroundColor: generateColors(cropData.length),
-                    borderColor: generateColors(cropData.length).map(color => color + 'dd'),
+                    borderColor: (() => {
+                        const colors = generateColors(cropData.length);
+                        const borderColors = [];
+                        for (let i = 0; i < colors.length; i++) {
+                            borderColors.push(colors[i] + 'dd');
+                        }
+                        return borderColors;
+                    })(),
                     borderWidth: 2,
                     hoverBorderWidth: 3,
                     hoverBorderColor: '#ffffff',
@@ -491,12 +466,28 @@
             cropChart.data.labels = newLabels;
             cropChart.data.datasets[0].data = newData;
             cropChart.data.datasets[0].backgroundColor = generateColors(newData.length);
-            cropChart.data.datasets[0].borderColor = generateColors(newData.length).map(color => color + 'dd');
+            const colors = generateColors(newData.length);
+            const borderColors = [];
+            for (let i = 0; i < colors.length; i++) {
+                borderColors.push(colors[i] + 'dd');
+            }
+            cropChart.data.datasets[0].borderColor = borderColors;
             cropChart.update();
         }
 
         // Soil Parameter Trends Chart
         let trendsChart = null;
+        let hoveredDatasetIndex = null;
+
+        // Enhanced color palette for different parameters
+        const parameterColors = {
+            temperature: { border: '#ef4444', background: 'rgba(239, 68, 68, 0.1)', point: '#dc2626' },
+            humidity: { border: '#3b82f6', background: 'rgba(59, 130, 246, 0.1)', point: '#2563eb' },
+            ph: { border: '#10b981', background: 'rgba(16, 185, 129, 0.1)', point: '#059669' },
+            nitrogen: { border: '#f59e0b', background: 'rgba(245, 158, 11, 0.1)', point: '#d97706' },
+            phosphorus: { border: '#8b5cf6', background: 'rgba(139, 92, 246, 0.1)', point: '#7c3aed' },
+            potassium: { border: '#ec4899', background: 'rgba(236, 72, 153, 0.1)', point: '#db2777' }
+        };
 
         // Function to fetch and update trends data
         async function fetchTrendsData() {
@@ -512,7 +503,56 @@
             });
 
             if (params.length === 0) {
-                return; // No parameters selected
+                // Show empty state
+                if (trendsChart) {
+                    trendsChart.destroy();
+                }
+                const ctx = document.getElementById('trendsChart').getContext('2d');
+                trendsChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: []
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            x: {
+                                type: 'time',
+                                title: {
+                                    display: true,
+                                    text: 'Date & Time'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Parameter Values'
+                                }
+                            }
+                        }
+                    },
+                    plugins: [{
+                        id: 'emptyState',
+                        beforeDraw: function(chart) {
+                            const { ctx, width, height } = chart;
+                            ctx.save();
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillStyle = '#6b7280';
+                            ctx.font = '16px Arial';
+                            ctx.fillText('No parameters selected', width / 2, height / 2);
+                            ctx.restore();
+                        }
+                    }]
+                });
+                return;
             }
 
             const paramsStr = params.join(',');
@@ -526,6 +566,32 @@
                     trendsChart.destroy();
                 }
 
+                // Enhance datasets with better colors and styling
+                data.datasets = data.datasets.map(dataset => {
+                    const paramKey = dataset.label.toLowerCase();
+                    const colors = parameterColors[paramKey] || {
+                        border: '#6b7280',
+                        background: 'rgba(107, 114, 128, 0.1)',
+                        point: '#374151'
+                    };
+
+                    return {
+                        ...dataset,
+                        borderColor: colors.border,
+                        backgroundColor: colors.background,
+                        borderWidth: 2,
+                        pointBackgroundColor: colors.point,
+                        pointBorderColor: colors.border,
+                        pointBorderWidth: 2,
+                        pointHoverRadius: 8,
+                        pointHoverBackgroundColor: colors.point,
+                        pointHoverBorderColor: colors.border,
+                        pointHoverBorderWidth: 3,
+                        fill: true,
+                        tension: 0.3
+                    };
+                });
+
                 const ctx = document.getElementById('trendsChart').getContext('2d');
                 trendsChart = new Chart(ctx, {
                     type: 'line',
@@ -534,8 +600,8 @@
                         responsive: true,
                         maintainAspectRatio: false,
                         interaction: {
-                            mode: 'index',
-                            intersect: false,
+                            mode: 'nearest',
+                            intersect: true,
                         },
                         plugins: {
                             legend: {
@@ -543,26 +609,70 @@
                                 position: 'top',
                                 labels: {
                                     usePointStyle: true,
-                                    padding: 20
+                                    padding: 20,
+                                    font: {
+                                        size: 12,
+                                        weight: '500'
+                                    },
+                                    generateLabels: function(chart) {
+                                        const datasets = chart.data.datasets;
+                                        return datasets.map((dataset, i) => ({
+                                            text: dataset.label,
+                                            fillStyle: dataset.borderColor,
+                                            strokeStyle: dataset.borderColor,
+                                            lineWidth: 2,
+                                            hidden: !chart.isDatasetVisible(i),
+                                            index: i,
+                                            pointStyle: 'line'
+                                        }));
+                                    }
+                                },
+                                onClick: function(e, legendItem, legend) {
+                                    const index = legendItem.index;
+                                    const ci = legend.chart;
+                                    const meta = ci.getDatasetMeta(index);
+                                    meta.hidden = meta.hidden === null ? !ci.data.datasets[index].hidden : null;
+                                    ci.update();
                                 }
                             },
                             tooltip: {
-                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                backgroundColor: 'rgba(0, 0, 0, 0.9)',
                                 titleColor: '#ffffff',
                                 bodyColor: '#ffffff',
                                 borderColor: '#ffffff',
                                 borderWidth: 1,
-                                cornerRadius: 8,
+                                cornerRadius: 12,
+                                displayColors: true,
+                                padding: 12,
+                                titleFont: {
+                                    size: 14,
+                                    weight: 'bold'
+                                },
+                                bodyFont: {
+                                    size: 13
+                                },
                                 callbacks: {
                                     title: function(context) {
                                         const date = new Date(context[0].parsed.x);
-                                        return date.toLocaleString();
+                                        return date.toLocaleDateString('en-US', {timeZone: 'Asia/Manila'}) + ' ' + date.toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit', timeZone: 'Asia/Manila'});
                                     },
                                     label: function(context) {
                                         const label = context.dataset.label;
                                         const value = context.parsed.y;
-                                        const crop = context.raw.crop || 'N/A';
-                                        return `${label}: ${value} (Crop: ${crop})`;
+                                        let formattedValue = value;
+
+                                        // Format values based on parameter type
+                                        if (label.toLowerCase().includes('ph')) {
+                                            formattedValue = value.toFixed(1);
+                                        } else if (label.toLowerCase().includes('temperature')) {
+                                            formattedValue = value.toFixed(1) + '°C';
+                                        } else if (label.toLowerCase().includes('humidity')) {
+                                            formattedValue = value.toFixed(1) + '%';
+                                        } else {
+                                            formattedValue = value.toFixed(2);
+                                        }
+
+                                        return `${label}: ${formattedValue}`;
                                     }
                                 }
                             }
@@ -580,34 +690,111 @@
                                 },
                                 title: {
                                     display: true,
-                                    text: 'Date & Time'
+                                    text: 'Date & Time',
+                                    font: {
+                                        size: 14,
+                                        weight: 'bold'
+                                    }
+                                },
+                                grid: {
+                                    display: true,
+                                    color: 'rgba(0, 0, 0, 0.1)'
+                                },
+                                ticks: {
+                                    maxTicksLimit: 10
                                 }
                             },
                             y: {
                                 beginAtZero: false,
                                 title: {
                                     display: true,
-                                    text: 'Parameter Values'
+                                    text: 'Parameter Values',
+                                    font: {
+                                        size: 14,
+                                        weight: 'bold'
+                                    }
+                                },
+                                grid: {
+                                    display: true,
+                                    color: 'rgba(0, 0, 0, 0.1)'
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return value.toFixed(1);
+                                    }
                                 }
                             }
                         },
                         elements: {
                             point: {
-                                radius: 3,
-                                hoverRadius: 6
+                                radius: 4,
+                                hoverRadius: 8
                             },
                             line: {
-                                tension: 0.4
+                                tension: 0.3
                             }
                         },
                         animation: {
-                            duration: 1000,
+                            duration: 1500,
                             easing: 'easeInOutQuart'
+                        },
+                        hover: {
+                            mode: 'nearest',
+                            intersect: true
                         }
                     }
                 });
             } catch (error) {
                 console.error('Error fetching trends data:', error);
+                // Show error state
+                if (trendsChart) {
+                    trendsChart.destroy();
+                }
+                const ctx = document.getElementById('trendsChart').getContext('2d');
+                trendsChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: []
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            x: {
+                                type: 'time',
+                                title: {
+                                    display: true,
+                                    text: 'Date & Time'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Parameter Values'
+                                }
+                            }
+                        }
+                    },
+                    plugins: [{
+                        id: 'errorState',
+                        beforeDraw: function(chart) {
+                            const { ctx, width, height } = chart;
+                            ctx.save();
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillStyle = '#ef4444';
+                            ctx.font = '16px Arial';
+                            ctx.fillText('Error loading data', width / 2, height / 2);
+                            ctx.restore();
+                        }
+                    }]
+                });
             }
         }
 

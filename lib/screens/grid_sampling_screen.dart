@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'grid_area_input_screen.dart';
 import 'grid_sampling_complete_screen.dart';
+import 'package:soilsync/services/grid_sampling_storage.dart';
 
 class GridSamplingScreen extends StatefulWidget {
   const GridSamplingScreen({super.key});
@@ -36,7 +37,10 @@ class _GridSamplingScreenState extends State<GridSamplingScreen> {
     }
   }
 
-  void _resetGrid() {
+  void _resetGrid() async {
+    final storage = GridSamplingStorage();
+    await storage.clearData();
+
     setState(() {
       for (var i = 0; i < _areaCompleted.length; i++) {
         _areaCompleted[i] = false;
@@ -105,7 +109,7 @@ class _GridSamplingScreenState extends State<GridSamplingScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Walk through each area of the field and tap to mark it complete once samples are collected.',
+                          'Walk through each area of the field and tap to mark it complete once samples are collected. Enter different soil readings for each area to get accurate crop recommendations.',
                           style: TextStyle(
                             color: Colors.grey[700],
                             fontSize: 14,
