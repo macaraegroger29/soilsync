@@ -767,7 +767,7 @@ class _UserDashboardState extends State<UserDashboard>
       'coconut': 'assets/icons/coconut.png',
       'coffee': 'assets/icons/coffee.png',
       'corn': 'assets/icons/corn.png',
-      'maize': 'assets/icons/corn.png', // Alternative name for corn
+      'maize': 'assets/icons/corn.png',
       'cotton': 'assets/icons/cotton.png',
       'grapes': 'assets/icons/grapes.png',
       'jute': 'assets/icons/jute.png',
@@ -787,17 +787,20 @@ class _UserDashboardState extends State<UserDashboard>
       'pomegranate': 'assets/icons/pomegranate.png',
       'rice': 'assets/icons/rice.png',
       'watermelon': 'assets/icons/watermelon.png',
+      'pakwan': 'assets/icons/pakwan.png',
+      'talong': 'assets/icons/talong.png',
+      'onion': 'assets/icons/sibuyas.png',
+      'sibuyas': 'assets/icons/sibuyas.png',
     };
 
-    return cropIconMap[normalizedName] ??
-        'assets/icons/rice.png'; // Default to rice icon
+    return cropIconMap[normalizedName] ?? 'assets/icons/rice.png';
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: false, // Remove hamburger/back button
+        automaticallyImplyLeading: false,
         title: Row(
           children: [
             Container(
@@ -811,7 +814,6 @@ class _UserDashboardState extends State<UserDashboard>
                   height: 32,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) {
-                    // Fallback to eco icon if image fails to load
                     return Icon(Icons.eco, color: Colors.white, size: 24);
                   },
                 ),
@@ -1368,6 +1370,8 @@ class _UserDashboardState extends State<UserDashboard>
                         width: 48,
                         height: 48,
                         fit: BoxFit.cover,
+                        cacheWidth: 96,
+                        cacheHeight: 96,
                         errorBuilder: (context, error, stackTrace) {
                           // Fallback to eco icon if image fails to load
                           return Icon(Icons.eco,
@@ -1447,15 +1451,20 @@ class _UserDashboardState extends State<UserDashboard>
           child: ExpansionTile(
             leading: CircleAvatar(
               backgroundColor: Colors.green[100],
-              child: Image.asset(
-                _getCropIconPath(_convertCropIdToName(
-                    prediction['prediction']?.toString() ?? '')),
-                width: 28,
-                height: 28,
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) {
-                  return Icon(Icons.eco, color: Colors.green[700]);
-                },
+              radius: 24,
+              child: ClipOval(
+                child: Image.asset(
+                  _getCropIconPath(_convertCropIdToName(
+                      prediction['prediction']?.toString() ?? '')),
+                  width: 48,
+                  height: 48,
+                  fit: BoxFit.cover,
+                  cacheWidth: 96,
+                  cacheHeight: 96,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Icon(Icons.eco, color: Colors.green[700], size: 28);
+                  },
+                ),
               ),
             ),
             title: Text(

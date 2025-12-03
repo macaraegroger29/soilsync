@@ -16,7 +16,6 @@ void main() {
     debugPrint('FlutterError caught: ${details.exceptionAsString()}');
     debugPrint('Stack trace: ${details.stack}');
     if (kReleaseMode) {
-      // Handle release mode error
     } else {
       FlutterError.presentError(details);
     }
