@@ -804,6 +804,11 @@ class _EnhancedRegisterScreenState extends State<EnhancedRegisterScreen> {
       print('Password length: ${_passwordController.text.length}');
       print('Role: user');
 
+      // Split full name into first and last name
+      final nameParts = _nameController.text.trim().split(' ');
+      final firstName = nameParts.isNotEmpty ? nameParts.first : '';
+      final lastName = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+
       final response = await http
           .post(
             Uri.parse(registerUrl),
@@ -815,9 +820,13 @@ class _EnhancedRegisterScreenState extends State<EnhancedRegisterScreen> {
               'username': _usernameController.text.trim(),
               'email': _emailController.text.trim(),
               'password': _passwordController.text,
+              'first_name': firstName,
+              'last_name': lastName,
               'role': 'user',
               'phone': _phoneController.text.trim(),
               'location': _locationController.text.trim(),
+              'farm_name': _farmNameController.text.trim(),
+              'farm_size': _farmSizeController.text.trim(),
             }),
           )
           .timeout(Duration(seconds: 30));

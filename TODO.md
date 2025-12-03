@@ -1,4 +1,4 @@
-# TODO List for Dashboard Edit/Delete Functionality
+# TODO List for Dashboard Edit/Delete Functionality and Profile Updates
 
 ## Completed Tasks
 - [x] Created `edit_crop_recommendation` view in views.py
@@ -15,6 +15,9 @@
 - [x] Fixed IndentationError in urls.py
 - [x] Created missing delete_api_soil_data.html template
 - [x] Created missing delete_crop_recommendation.html template
+- [x] Added location information to profile page (profile.html)
+- [x] Fixed full name display issue by updating serializer to include first_name and last_name fields
+- [x] Updated enhanced_register_screen.dart to split full name into first_name and last_name when registering
 
 ## Summary
 All tasks have been completed successfully. The dashboard now includes:
@@ -25,3 +28,6 @@ All tasks have been completed successfully. The dashboard now includes:
 - Proper templates for all CRUD operations
 - Updated navigation and action links in the crop recommendations table
 - Fixed all template errors and server startup issues
+- Location field displayed in user profile page
+- Full name properly displayed in profile (split into first_name and last_name during registration)
+- Activity logging for profile page access

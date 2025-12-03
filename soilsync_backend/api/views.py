@@ -991,9 +991,12 @@ class UserProfileView(APIView):
             user_data = {
                 'username': user.username,
                 'email': user.email,
+                'first_name': user.first_name or '',
+                'last_name': user.last_name or '',
+                'farm_name': user.farm_name or '',
+                'farm_size': user.farm_size or '',
                 'role': user.role,
                 'date_joined': user.date_joined,
-                'last_login': user.last_login,
                 'total_predictions': total_predictions,
                 'most_predicted_crop': most_predicted_crop,
                 'phone': user.phone or '',

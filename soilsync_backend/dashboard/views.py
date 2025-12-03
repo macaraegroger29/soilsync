@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, redirect, get_object_or_404
 from .models import SoilData, SensorDevice, CropRecommendation, ActivityLog, SystemFeedback
 from api.models import SoilData as APISoilData
 from django.contrib.auth import get_user_model, authenticate, login, logout
@@ -71,14 +72,16 @@ def dashboard_login(request):
 def dashboard_register(request):
     if request.user.is_authenticated:
         return redirect('database_dashboard')
-    
+
     if request.method == 'POST':
         username = request.POST.get('username')
         email = request.POST.get('email')
         password1 = request.POST.get('password1')
         password2 = request.POST.get('password2')
         role = request.POST.get('role', 'farmer')
-        
+        farm_name = request.POST.get('farm_name', '').strip()
+        farm_size = request.POST.get('farm_size', '').strip()
+
         # Validation
         if not all([username, email, password1, password2, role]):
             messages.error(request, 'Please fill in all required fields!')
@@ -96,13 +99,15 @@ def dashboard_register(request):
                     username=username,
                     email=email,
                     password=password1,
-                    role=role
+                    role=role,
+                    farm_name=farm_name if farm_name else None,
+                    farm_size=farm_size if farm_size else None
                 )
                 messages.success(request, f'Account created successfully! Please log in with your new account.')
                 return redirect('dashboard_login')
             except IntegrityError:
                 messages.error(request, 'An error occurred during registration. Please try again.')
-    
+
     return render(request, 'dashboard/register.html')
 
 def dashboard_logout(request):
@@ -113,14 +118,14 @@ def dashboard_logout(request):
 @login_required(login_url='dashboard_login')
 def database_dashboard(request):
     # Get all data for dashboard
-    users = User.objects.all()
+    is_admin = request.user.role == 'admin' or request.user.is_staff
+    users = User.objects.all() if is_admin else None
     sensors = SensorDevice.objects.all()
 
     # Get traditional crop recommendations
     crop_recommendations = CropRecommendation.objects.all()
 
     # Get API soil data for analytics
-    is_admin = request.user.role == 'admin' or request.user.is_staff
     if is_admin:
         api_soil_data = APISoilData.objects.select_related('user').all()
     else:
@@ -384,6 +389,8 @@ def user_settings(request):
         first_name = request.POST.get('first_name', '')
         last_name = request.POST.get('last_name', '')
         organization = request.POST.get('organization', '')
+        farm_name = request.POST.get('farm_name', '').strip()
+        farm_size = request.POST.get('farm_size', '').strip()
 
         if email:
             try:
@@ -394,6 +401,8 @@ def user_settings(request):
                     request.user.email = email
                     request.user.first_name = first_name
                     request.user.last_name = last_name
+                    request.user.farm_name = farm_name if farm_name else None
+                    request.user.farm_size = farm_size if farm_size else None
                     if hasattr(request.user, 'userprofile'):
                         request.user.userprofile.organization = organization
                         request.user.userprofile.save()
@@ -483,12 +492,38 @@ def user_profile(request):
             'timestamp': data.created_at
         })
 
+    # Get user profile data from API
+    from api.views import UserProfileView
+    from rest_framework.test import APIRequestFactory
+    from rest_framework.request import Request
+
+    factory = APIRequestFactory()
+    api_request = factory.get('/api/user/profile/')
+    api_request.user = request.user
+
+    # Create a DRF request object
+    from rest_framework.request import Request as DRFRequest
+    drf_request = DRFRequest(api_request)
+    drf_request.user = request.user
+
+    view = UserProfileView()
+    response = view.get(drf_request)
+    user_profile_data = response.data if hasattr(response, 'data') else {}
+
+    # Add activity logging for profile view
+    ActivityLog.objects.create(
+        user=request.user,
+        action='Viewed profile page',
+        description=f'User {request.user.username} accessed their profile page'
+    )
+
     return render(request, 'dashboard/profile.html', {
         'api_soil_data': api_soil_data,
         'api_soil_data_count': api_soil_data_count,
         'recommendations_count': recommendations_count,
         'recent_activity': recent_activity,
         'is_admin': is_admin,
+        'user_profile': user_profile_data,
     })
 
 @login_required(login_url='dashboard_login')
@@ -502,8 +537,12 @@ def users_table(request):
     if request.method == 'POST' and 'create_user' in request.POST:
         username = request.POST.get('username')
         email = request.POST.get('email')
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
         password = request.POST.get('password')
         role = request.POST.get('role', 'farmer')
+        farm_name = request.POST.get('farm_name', '').strip()
+        farm_size = request.POST.get('farm_size', '').strip()
 
         if username and email and password:
             try:
@@ -511,7 +550,11 @@ def users_table(request):
                     username=username,
                     email=email,
                     password=password,
-                    role=role
+                    first_name=first_name if first_name else '',
+                    last_name=last_name if last_name else '',
+                    role=role,
+                    farm_name=farm_name if farm_name else None,
+                    farm_size=farm_size if farm_size else None
                 )
                 messages.success(request, f'User "{username}" created successfully!')
                 return redirect('users_table')
@@ -550,9 +593,9 @@ def edit_user(request, pk):
     if not (request.user.role == 'admin' or request.user.is_staff):
         messages.error(request, 'Access denied. Admin privileges required.')
         return redirect('database_dashboard')
-    
+
     user_to_edit = get_object_or_404(User, pk=pk)
-    
+
     if request.method == 'POST':
         username = request.POST.get('username')
         email = request.POST.get('email')
@@ -560,7 +603,9 @@ def edit_user(request, pk):
         last_name = request.POST.get('last_name', '')
         role = request.POST.get('role', 'farmer')
         is_active = request.POST.get('is_active') == 'on'
-        
+        farm_name = request.POST.get('farm_name', '').strip()
+        farm_size = request.POST.get('farm_size', '').strip()
+
         if username and email:
             try:
                 # Check if username or email already exists (excluding current user)
@@ -575,15 +620,17 @@ def edit_user(request, pk):
                     user_to_edit.last_name = last_name
                     user_to_edit.role = role
                     user_to_edit.is_active = is_active
+                    user_to_edit.farm_name = farm_name if farm_name else None
+                    user_to_edit.farm_size = farm_size if farm_size else None
                     user_to_edit.save()
-                    
+
                     messages.success(request, f'User "{username}" updated successfully!')
                     return redirect('users_table')
             except IntegrityError:
                 messages.error(request, 'An error occurred while updating the user.')
         else:
             messages.error(request, 'Please fill in all required fields!')
-    
+
     return render(request, 'dashboard/edit_user.html', {
         'user_to_edit': user_to_edit,
     })
