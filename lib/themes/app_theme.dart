@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   // Modern color palette optimized for outdoor visibility
-  static const Color primaryColor = Color(0xFF2E7D32); // Deep green
-  static const Color secondaryColor = Color(0xFF4CAF50); // Medium green
-  static const Color accentColor = Color(0xFFFFA726); // Orange accent
-  static const Color backgroundColor = Color(0xFFF5F5F5);
+  static const Color primaryColor = Color(0xFF15803D); // Deep green
+  static const Color secondaryColor = Color(0xFF22C55E); // Medium green
+  static const Color accentColor = Color(0xFFA16207); // Harvest Gold
+  static const Color backgroundColor = Color(0xFFF0FDF4); // Soft Mint
   static const Color surfaceColor = Colors.white;
-  static const Color errorColor = Color(0xFFD32F2F);
-  static const Color successColor = Color(0xFF388E3C);
-  static const Color warningColor = Color(0xFFF57C00);
+  static const Color errorColor = Color(0xFFDC2626);
+  static const Color successColor = Color(0xFF15803D);
+  static const Color warningColor = Color(0xFFA16207);
 
   // Text colors for outdoor visibility
-  static const Color primaryText = Color(0xFF212121);
-  static const Color secondaryText = Color(0xFF757575);
-  static const Color disabledText = Color(0xFFBDBDBD);
+  static const Color primaryText = Color(0xFF14532D);
+  static const Color secondaryText = Color(0xFF64748B);
+  static const Color disabledText = Color(0xFF94A3B8);
 
   // Modern typography optimized for farmers
   static TextTheme _buildTextTheme() {
@@ -23,85 +24,85 @@ class AppTheme {
         fontSize: 32,
         fontWeight: FontWeight.bold,
         color: primaryText,
-        fontFamily: 'Roboto',
+        
       ),
       displayMedium: TextStyle(
         fontSize: 28,
         fontWeight: FontWeight.bold,
         color: primaryText,
-        fontFamily: 'Roboto',
+        
       ),
       displaySmall: TextStyle(
         fontSize: 24,
         fontWeight: FontWeight.bold,
         color: primaryText,
-        fontFamily: 'Roboto',
+        
       ),
       headlineMedium: TextStyle(
         fontSize: 20,
         fontWeight: FontWeight.w600,
         color: primaryText,
-        fontFamily: 'Roboto',
+        
       ),
       headlineSmall: TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.w600,
         color: primaryText,
-        fontFamily: 'Roboto',
+        
       ),
       titleLarge: TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.w600,
         color: primaryText,
-        fontFamily: 'Roboto',
+        
       ),
       titleMedium: TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.w500,
         color: primaryText,
-        fontFamily: 'Roboto',
+        
       ),
       titleSmall: TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w500,
         color: primaryText,
-        fontFamily: 'Roboto',
+        
       ),
       bodyLarge: TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.normal,
         color: primaryText,
-        fontFamily: 'Roboto',
+        
       ),
       bodyMedium: TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.normal,
         color: primaryText,
-        fontFamily: 'Roboto',
+        
       ),
       bodySmall: TextStyle(
         fontSize: 12,
         fontWeight: FontWeight.normal,
         color: secondaryText,
-        fontFamily: 'Roboto',
+        
       ),
       labelLarge: TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.w500,
         color: primaryText,
-        fontFamily: 'Roboto',
+        
       ),
       labelMedium: TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w500,
         color: primaryText,
-        fontFamily: 'Roboto',
+        
       ),
       labelSmall: TextStyle(
         fontSize: 12,
         fontWeight: FontWeight.w500,
         color: secondaryText,
-        fontFamily: 'Roboto',
+        
       ),
     );
   }
@@ -118,7 +119,7 @@ class AppTheme {
       error: errorColor,
       brightness: Brightness.light,
     ),
-    textTheme: _buildTextTheme(),
+    textTheme: GoogleFonts.interTextTheme(_buildTextTheme()),
     appBarTheme: const AppBarTheme(
       elevation: 0,
       backgroundColor: primaryColor,
@@ -128,7 +129,7 @@ class AppTheme {
         fontSize: 20,
         fontWeight: FontWeight.bold,
         color: Colors.white,
-        fontFamily: 'Roboto',
+        
       ),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
@@ -142,7 +143,7 @@ class AppTheme {
         textStyle: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w600,
-          fontFamily: 'Roboto',
+          
         ),
         elevation: 2,
       ),
@@ -158,7 +159,7 @@ class AppTheme {
         textStyle: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w600,
-          fontFamily: 'Roboto',
+          
         ),
       ),
     ),
@@ -168,7 +169,7 @@ class AppTheme {
         textStyle: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w600,
-          fontFamily: 'Roboto',
+          
         ),
       ),
     ),
@@ -195,12 +196,12 @@ class AppTheme {
         fontSize: 16,
         fontWeight: FontWeight.w500,
         color: secondaryText,
-        fontFamily: 'Roboto',
+        
       ),
       hintStyle: const TextStyle(
         fontSize: 16,
         color: disabledText,
-        fontFamily: 'Roboto',
+        
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     ),
@@ -226,12 +227,12 @@ class AppTheme {
       selectedLabelStyle: TextStyle(
         fontSize: 12,
         fontWeight: FontWeight.w600,
-        fontFamily: 'Roboto',
+        
       ),
       unselectedLabelStyle: TextStyle(
         fontSize: 12,
         fontWeight: FontWeight.w500,
-        fontFamily: 'Roboto',
+        
       ),
     ),
   );
@@ -248,7 +249,7 @@ class AppTheme {
       error: errorColor,
       brightness: Brightness.dark,
     ),
-    textTheme: _buildTextTheme().apply(
+    textTheme: GoogleFonts.interTextTheme(_buildTextTheme()).apply(
       bodyColor: Colors.white,
       displayColor: Colors.white,
     ),
@@ -261,7 +262,7 @@ class AppTheme {
         fontSize: 20,
         fontWeight: FontWeight.bold,
         color: Colors.white,
-        fontFamily: 'Roboto',
+        
       ),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
@@ -275,7 +276,7 @@ class AppTheme {
         textStyle: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w600,
-          fontFamily: 'Roboto',
+          
         ),
       ),
     ),

@@ -1144,33 +1144,44 @@ class _UserDashboardState extends State<UserDashboard>
       height: size,
       child: Card(
         elevation: 2,
+        shadowColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(8.0),
+          padding: const EdgeInsets.all(12.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                label,
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icon, size: 16, color: Theme.of(context).colorScheme.secondary),
+                  SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                      label,
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.secondary),
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
-              SizedBox(height: 8),
+              SizedBox(height: 12),
               if (isReadOnly)
                 Column(
                   children: [
                     Text(
                       value.isEmpty ? '--' : value,
                       style:
-                          TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+                          TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Theme.of(context).colorScheme.primary),
                       textAlign: TextAlign.center,
                     ),
                     if (unit.isNotEmpty)
                       Text(
                         unit,
-                        style: TextStyle(fontSize: 13),
+                        style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
                         textAlign: TextAlign.center,
                       ),
                   ],
@@ -1183,12 +1194,14 @@ class _UserDashboardState extends State<UserDashboard>
                       textAlign: TextAlign.center,
                       keyboardType: TextInputType.number,
                       style:
-                          TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+                          TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Theme.of(context).colorScheme.primary),
                       decoration: InputDecoration(
                         isDense: true,
                         contentPadding:
                             EdgeInsets.symmetric(vertical: 6, horizontal: 8),
                         border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) return '';
@@ -1199,7 +1212,7 @@ class _UserDashboardState extends State<UserDashboard>
                     if (unit.isNotEmpty)
                       Text(
                         unit,
-                        style: TextStyle(fontSize: 13),
+                        style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
                         textAlign: TextAlign.center,
                       ),
                   ],
@@ -1220,21 +1233,29 @@ class _UserDashboardState extends State<UserDashboard>
   }) {
     return Card(
       elevation: 2,
+      shadowColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(8.0),
+        padding: const EdgeInsets.all(12.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(
-              label,
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 16, color: Theme.of(context).colorScheme.secondary),
+                SizedBox(width: 4),
+                Text(
+                  label,
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.secondary),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
-            SizedBox(height: 8),
+            SizedBox(height: 12),
             Builder(
               builder: (context) {
                 final bool isReadOnly = _isAutomaticMode;
@@ -1245,13 +1266,13 @@ class _UserDashboardState extends State<UserDashboard>
                       Text(
                         value.isEmpty ? '--' : value,
                         style: TextStyle(
-                            fontSize: 26, fontWeight: FontWeight.bold),
+                            fontSize: 28, fontWeight: FontWeight.w800, color: Theme.of(context).colorScheme.primary),
                         textAlign: TextAlign.center,
                       ),
                       if (unit.isNotEmpty)
                         Text(
                           unit,
-                          style: TextStyle(fontSize: 13),
+                          style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
                           textAlign: TextAlign.center,
                         ),
                     ],
@@ -1264,12 +1285,14 @@ class _UserDashboardState extends State<UserDashboard>
                         textAlign: TextAlign.center,
                         keyboardType: TextInputType.number,
                         style: TextStyle(
-                            fontSize: 26, fontWeight: FontWeight.bold),
+                            fontSize: 28, fontWeight: FontWeight.w800, color: Theme.of(context).colorScheme.primary),
                         decoration: InputDecoration(
                           isDense: true,
                           contentPadding:
                               EdgeInsets.symmetric(vertical: 6, horizontal: 8),
                           border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) return '';
@@ -1280,7 +1303,7 @@ class _UserDashboardState extends State<UserDashboard>
                       if (unit.isNotEmpty)
                         Text(
                           unit,
-                          style: TextStyle(fontSize: 13),
+                          style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
                           textAlign: TextAlign.center,
                         ),
                     ],
