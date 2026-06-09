@@ -15,6 +15,7 @@ import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'dart:typed_data';
 import 'package:permission_handler/permission_handler.dart';
 import 'screens/crop_search_screen.dart';
+import 'themes/app_theme.dart';
 class UserDashboard extends StatefulWidget {
   const UserDashboard({super.key});
 
@@ -264,7 +265,7 @@ class _UserDashboardState extends State<UserDashboard>
             SnackBar(
               content: Text(
                   'Prediction successful: ${_convertCropIdToName(data['prediction']?.toString() ?? '')}'),
-              backgroundColor: Colors.green,
+              backgroundColor: AppTheme.primaryColor,
             ),
           );
         }
@@ -797,8 +798,12 @@ class _UserDashboardState extends State<UserDashboard>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         automaticallyImplyLeading: false,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         title: Row(
           children: [
             Container(
@@ -830,9 +835,6 @@ class _UserDashboardState extends State<UserDashboard>
             const SizedBox(width: 12),
           ],
         ),
-        backgroundColor: Colors.green[700],
-        foregroundColor: Colors.white,
-        elevation: 0,
         actions: [
           IconButton(
             icon: Icon(Icons.search, color: Colors.white),
@@ -853,77 +855,108 @@ class _UserDashboardState extends State<UserDashboard>
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Colors.green[700]!, Colors.green[50]!],
-            stops: [0.0, 0.2],
+            colors: [
+              Theme.of(context).colorScheme.primary.withOpacity(0.9),
+              Theme.of(context).colorScheme.background,
+            ],
+            stops: const [0.0, 0.3],
           ),
         ),
-        child: IndexedStack(
-          index: _selectedIndex,
-          children: [
-            SingleChildScrollView(
-              padding: EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildPredictionForm(),
-                  SizedBox(height: 16),
-                  GestureDetector(
-                    onTap: _predictionResult != null
-                        ? () {
-                            showModalBottomSheet(
-                              context: context,
-                              isScrollControlled: true,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.vertical(
-                                    top: Radius.circular(24)),
-                              ),
-                              builder: (context) => Padding(
-                                padding: const EdgeInsets.only(
-                                    top: 16, left: 12, right: 12, bottom: 24),
-                                child: _buildAnalytics(),
-                              ),
-                            );
-                          }
-                        : null,
-                    child: _buildPredictionResult(),
-                  ),
-                ],
+        child: SafeArea(
+          bottom: false,
+          child: IndexedStack(
+            index: _selectedIndex,
+            children: [
+              SingleChildScrollView(
+                padding: EdgeInsets.only(left: 16.0, right: 16.0, bottom: 100.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildPredictionForm(),
+                    SizedBox(height: 16),
+                    GestureDetector(
+                      onTap: _predictionResult != null
+                          ? () {
+                              showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.vertical(
+                                      top: Radius.circular(32)),
+                                ),
+                                builder: (context) => Padding(
+                                  padding: const EdgeInsets.only(
+                                      top: 16, left: 12, right: 12, bottom: 24),
+                                  child: _buildAnalytics(),
+                                ),
+                              );
+                            }
+                          : null,
+                      child: _buildPredictionResult(),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            // Insert Sensor page between Home and History
-            _buildSensorPage(),
-            _buildPredictionHistory(),
-            ProfilePage(),
-          ],
+              // Insert Sensor page between Home and History
+              _buildSensorPage(),
+              _buildPredictionHistory(),
+              ProfilePage(),
+            ],
+          ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        selectedItemColor: Colors.green[700],
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          margin: const EdgeInsets.only(left: 20, right: 20, bottom: 16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(32),
+            boxShadow: [
+              BoxShadow(
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                blurRadius: 24,
+                spreadRadius: 0,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.sensors),
-            label: 'Sensor',
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(32),
+            child: BottomNavigationBar(
+              elevation: 0,
+              backgroundColor: Colors.transparent,
+              type: BottomNavigationBarType.fixed,
+              currentIndex: _selectedIndex,
+              onTap: (index) {
+                setState(() {
+                  _selectedIndex = index;
+                });
+              },
+              selectedItemColor: Theme.of(context).colorScheme.primary,
+              unselectedItemColor: Colors.grey,
+              showSelectedLabels: true,
+              showUnselectedLabels: false,
+              items: const [
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.home_rounded),
+                  label: 'Home',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.sensors_rounded),
+                  label: 'Sensor',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.history_rounded),
+                  label: 'History',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.person_rounded),
+                  label: 'Profile',
+                ),
+              ],
+            ),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'History',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -943,7 +976,7 @@ class _UserDashboardState extends State<UserDashboard>
                 style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.green[700])),
+                    color: AppTheme.primaryColor)),
             SizedBox(height: 12),
             _buildSensorRow('Moisture', soilMoisture, '%'),
             _buildSensorRow('Temperature', soilTemperature, '°C'),
@@ -967,7 +1000,7 @@ class _UserDashboardState extends State<UserDashboard>
           Text(
             value != null ? '$value $unit' : '--',
             style: TextStyle(
-                color: Colors.green[700],
+                color: AppTheme.primaryColor,
                 fontWeight: FontWeight.bold,
                 fontSize: 14),
           ),
@@ -996,7 +1029,7 @@ class _UserDashboardState extends State<UserDashboard>
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.green[700],
+                    color: AppTheme.primaryColor,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -1013,7 +1046,7 @@ class _UserDashboardState extends State<UserDashboard>
                       }
                     });
                   },
-                  activeColor: Colors.green[700],
+                  activeColor: AppTheme.primaryColor,
                 ),
               ],
             ),
@@ -1110,7 +1143,7 @@ class _UserDashboardState extends State<UserDashboard>
                               label: Text(
                                   _isPredicting ? 'Predicting...' : 'Predict'),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green[700],
+                                backgroundColor: AppTheme.primaryColor,
                                 foregroundColor: Colors.white,
                                 padding: EdgeInsets.symmetric(vertical: 12),
                               ),
@@ -1345,16 +1378,16 @@ class _UserDashboardState extends State<UserDashboard>
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.green[700],
+                color: AppTheme.primaryColor,
               ),
             ),
             SizedBox(height: 16),
             Container(
               padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.green[50],
+                color: AppTheme.backgroundColor,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.green[200]!),
+                border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
@@ -1384,7 +1417,7 @@ class _UserDashboardState extends State<UserDashboard>
                         errorBuilder: (context, error, stackTrace) {
                           // Fallback to eco icon if image fails to load
                           return Icon(Icons.eco,
-                              color: Colors.green[700], size: 32);
+                              color: AppTheme.primaryColor, size: 32);
                         },
                       ),
                     ),
@@ -1399,14 +1432,14 @@ class _UserDashboardState extends State<UserDashboard>
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
-                            color: Colors.green[900],
+                            color: AppTheme.primaryText,
                           ),
                         ),
                         SizedBox(height: 4),
                         Text(
                           'Recommended Crop',
                           style: TextStyle(
-                            color: Colors.green[700],
+                            color: AppTheme.primaryColor,
                             fontSize: 14,
                           ),
                         ),
@@ -1459,7 +1492,7 @@ class _UserDashboardState extends State<UserDashboard>
           ),
           child: ExpansionTile(
             leading: CircleAvatar(
-              backgroundColor: Colors.green[100],
+              backgroundColor: AppTheme.backgroundColor,
               radius: 24,
               child: ClipOval(
                 child: Image.asset(
@@ -1471,7 +1504,7 @@ class _UserDashboardState extends State<UserDashboard>
                   cacheWidth: 96,
                   cacheHeight: 96,
                   errorBuilder: (context, error, stackTrace) {
-                    return Icon(Icons.eco, color: Colors.green[700], size: 28);
+                    return Icon(Icons.eco, color: AppTheme.primaryColor, size: 28);
                   },
                 ),
               ),
@@ -1481,7 +1514,7 @@ class _UserDashboardState extends State<UserDashboard>
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
-                color: Colors.green[900],
+                color: AppTheme.primaryText,
               ),
             ),
             subtitle: Text(
@@ -1546,7 +1579,7 @@ class _UserDashboardState extends State<UserDashboard>
           Text(
             value,
             style: TextStyle(
-              color: Colors.green[700],
+              color: AppTheme.primaryColor,
               fontWeight: FontWeight.bold,
               fontSize: 14,
             ),
@@ -1608,20 +1641,20 @@ class _UserDashboardState extends State<UserDashboard>
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Colors.green[700],
+                            color: AppTheme.primaryColor,
                           ),
                         ),
                         Container(
                           padding:
                               EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.green[50],
+                            color: AppTheme.backgroundColor,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
                             'Based on soil analysis',
                             style: TextStyle(
-                              color: Colors.green[700],
+                              color: AppTheme.primaryColor,
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
                             ),
@@ -1651,14 +1684,14 @@ class _UserDashboardState extends State<UserDashboard>
                               width: 32,
                               height: 32,
                               decoration: BoxDecoration(
-                                color: Colors.green[100],
+                                color: AppTheme.backgroundColor,
                                 shape: BoxShape.circle,
                               ),
                               child: Center(
                                 child: Text(
                                   '${index + 1}',
                                   style: TextStyle(
-                                    color: Colors.green[700],
+                                    color: AppTheme.primaryColor,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14,
                                   ),
@@ -1675,7 +1708,7 @@ class _UserDashboardState extends State<UserDashboard>
                                         crop['label']?.toString() ?? 'Unknown'),
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.green[900],
+                                      color: AppTheme.primaryText,
                                       fontSize: 14,
                                     ),
                                     overflow: TextOverflow.ellipsis,
@@ -1687,13 +1720,13 @@ class _UserDashboardState extends State<UserDashboard>
                                       vertical: 2,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: Colors.green[50],
+                                      color: AppTheme.backgroundColor,
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(
                                       '$confidenceScore% confidence',
                                       style: TextStyle(
-                                        color: Colors.green[700],
+                                        color: AppTheme.primaryColor,
                                         fontSize: 11,
                                         fontWeight: FontWeight.w500,
                                       ),
@@ -1736,7 +1769,7 @@ class _UserDashboardState extends State<UserDashboard>
         Text(
           value,
           style: TextStyle(
-            color: Colors.green[900],
+            color: AppTheme.primaryText,
             fontSize: 16,
             fontWeight: FontWeight.bold,
           ),
@@ -1814,17 +1847,17 @@ class _UserDashboardState extends State<UserDashboard>
         decoration: InputDecoration(
           labelText: label,
           suffixText: unit,
-          prefixIcon: Icon(icon, color: Colors.green[700]),
+          prefixIcon: Icon(icon, color: AppTheme.primaryColor),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.green[200]!),
+            borderSide: BorderSide(color: AppTheme.primaryColor.withValues(alpha: 0.3)),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.green[700]!),
+            borderSide: BorderSide(color: AppTheme.primaryColor),
           ),
         ),
         validator: (value) {
@@ -1962,7 +1995,7 @@ class BluetoothClassicSensorPage extends StatelessWidget {
               children: [
                 Text('Connected to ${selectedDevice?.name ?? "Unknown"}',
                     style: TextStyle(
-                        fontWeight: FontWeight.bold, color: Colors.green[700])),
+                        fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
                 ElevatedButton(
                   onPressed: onDisconnect,
                   child: Text('Disconnect'),
@@ -1981,3 +2014,4 @@ class BluetoothClassicSensorPage extends StatelessWidget {
     );
   }
 }
+
