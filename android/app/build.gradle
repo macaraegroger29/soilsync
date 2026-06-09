@@ -12,7 +12,6 @@ buildscript {
     ext {
         compileSdkVersion = 35
         targetSdkVersion = 35
-        minSdkVersion = 21
     }
 }
 
@@ -59,7 +58,7 @@ android {
 
     defaultConfig {
         applicationId "com.soilsync.app"
-        minSdkVersion 21
+        minSdkVersion flutter.minSdkVersion
         targetSdkVersion 35
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName

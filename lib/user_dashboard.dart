@@ -15,8 +15,6 @@ import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'dart:typed_data';
 import 'package:permission_handler/permission_handler.dart';
 import 'screens/crop_search_screen.dart';
-import 'screens/grid_sampling_screen.dart';
-
 class UserDashboard extends StatefulWidget {
   const UserDashboard({super.key});
 
@@ -836,18 +834,6 @@ class _UserDashboardState extends State<UserDashboard>
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
-          IconButton(
-            icon: Icon(Icons.grid_view, color: Colors.white),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const GridSamplingScreen(),
-                ),
-              );
-            },
-            tooltip: 'Grid Sampling Mode',
-          ),
           IconButton(
             icon: Icon(Icons.search, color: Colors.white),
             onPressed: () {
